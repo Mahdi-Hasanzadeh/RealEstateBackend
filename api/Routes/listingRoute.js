@@ -16,5 +16,5 @@ Router.post("/create", validateToken, createListing);
 Router.get("/get", validateToken, getListingsWithQuery);
 Router.get("/:id", validateToken, getListings);
 Router.delete("/:id", validateToken, deleteListingById);
-Router.get("/userListing/:id", validateToken, getListingById);
+Router.get("/userListing/:id", getListingById);
 export default Router;
