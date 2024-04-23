@@ -5,6 +5,7 @@ import {
   deleteListingById,
   getListingById,
   getListingsWithQuery,
+  updateListingById,
 } from "../Controllers/listingController.js";
 // import { validateToken } from "../Middleware/validateToken.js";
 import { validateToken } from "../Middleware/validateToken.js";
@@ -19,4 +20,5 @@ Router.post("/create", validateToken, createListing);
 Router.get("/:id", validateToken, getListings);
 Router.delete("/:id", validateToken, deleteListingById);
 Router.get("/userListing/:id", validateToken, getListingById);
+Router.put("/:id", validateToken, updateListingById);
 export default Router;

@@ -205,3 +205,60 @@ export const getListingsWithQuery = async (req, res, next) => {
     });
   }
 };
+
+// update listings by id
+export const updateListingById = async (req, res, next) => {
+  try {
+    const listing = await listingModel.findById(req.params.id);
+
+    if (!listing) {
+      res.status(404).json({
+        success: false,
+        message: "Listing not found",
+      });
+      return;
+    }
+
+    if (listing.userRef != req.body.userRef) {
+      res.status(401).json({
+        succeess: false,
+        message: "Your are not allowed to update another user's listing",
+      });
+      return;
+    }
+
+    const updatedListing = await listingModel.findByIdAndUpdate(
+      req.params.id,
+      {
+        $set: {
+          name: req.body.name,
+          description: req.body.description,
+          address: req.body.address,
+          regularPrice: req.body.regularPrice,
+          discountPrice: req.body.discountPrice,
+          bedrooms: req.body.bedrooms,
+          bath: req.body.bath,
+          furnished: req.body.furnished,
+          parking: req.body.parking,
+          type: req.body.type,
+          offer: req.body.offer,
+          imageURLs: req.body.imageURLs,
+        },
+      },
+      {
+        new: true,
+      }
+    );
+
+    res.status(201).json({
+      succeess: true,
+      updatedListing,
+    });
+  } catch (error) {
+    console.log("update Failed: ", error.message);
+    res.status(404).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
