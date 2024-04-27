@@ -34,7 +34,6 @@ const errorHandler = (error, req, res, next) => {
     case 404:
       res.json({
         succeess: false,
-
         title: "NOT FOUND",
         message: error.message,
         stackTrace: error.stack,

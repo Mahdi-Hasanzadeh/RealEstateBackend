@@ -20,6 +20,10 @@ const userSchema = mongoose.Schema(
       type: String,
       default: "",
     },
+    mobileNumber: {
+      type: String,
+      default: "",
+    },
   },
   {
     timestamps: true,

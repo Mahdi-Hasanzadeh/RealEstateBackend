@@ -82,6 +82,7 @@ export const signinUser = asyncHandler(async (req, res, next) => {
       id: user.id,
       username: user.username,
       avatar: user.avatar,
+      mobileNumber: user.mobileNumber,
     });
   } else {
     res.status(401); // UNAUTHORIZED
@@ -122,6 +123,7 @@ export const google = asyncHandler(async (req, res, next) => {
       id: user.id,
       username: user.username,
       avatar: user.avatar,
+      mobileNumber: user.mobileNumber,
     });
   } else {
     // beacause the user not exist, first we create a random password and then we hash the password
@@ -171,6 +173,7 @@ export const google = asyncHandler(async (req, res, next) => {
       id: user.id,
       username: user.username,
       avatar: user.avatar,
+      mobileNumber: user.mobileNumber,
     });
   }
 });
@@ -200,6 +203,7 @@ export const updateUser = asyncHandler(async (req, res, next) => {
         email: req.body.email,
         password: req.body.password,
         avatar: req.body.avatar,
+        mobileNumber: req.body.mobileNumber,
       },
     },
     {
@@ -246,6 +250,7 @@ export const getUserInfo = asyncHandler(async (req, res, next) => {
     res.status(401);
     throw new Error("User is not authorized");
   }
+  console.log("get User info");
   console.log(req.params.id);
   const user = await userModel.findOne({ _id: req.params.id });
   console.log(user);

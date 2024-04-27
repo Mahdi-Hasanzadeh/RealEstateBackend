@@ -24,6 +24,8 @@ app.use(express.json());
 app.use("/api/user", userRouter);
 app.use("/api/listing", listingRouter);
 app.use(errorHandler);
+// const connectionString = process.env.CONNECTION_STRING;
+// const connectionString = "mongodb://localhost:27017";
 mongoose
   .connect(process.env.CONNECTION_STRING)
   .then(() => {

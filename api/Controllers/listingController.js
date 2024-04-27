@@ -71,6 +71,8 @@ export const getListingById = async (req, res, next) => {
     }
     res.status(200).json(listing);
   } catch (error) {
+    console.log("error: ", error);
+    console.log("error: ", error.message);
     res.status(404).json({
       success: false,
       message: error.message,
