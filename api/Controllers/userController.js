@@ -258,6 +258,7 @@ export const getUserInfo = asyncHandler(async (req, res, next) => {
     res.status(404);
     throw new Error("User is not found");
   }
-  const { username, email } = user;
-  res.status(200).json({ username, email });
+  console.log("getUserInfo: ", user);
+  const { username, email, mobileNumber } = user;
+  res.status(200).json({ username, email, mobileNumber });
 });
