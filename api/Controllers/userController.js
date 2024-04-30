@@ -201,9 +201,11 @@ export const updateUser = asyncHandler(async (req, res, next) => {
   console.log("favorite body: ", req.body.favorites);
   if (req.body.removeFavorites) {
     console.log("remove favorites");
-    const updatedFavorites = user.favorites.find(
+    console.log("favortes: ", user.favorites);
+    const updatedFavorites = user.favorites.filter(
       (item) => item != req.body.favorites
     );
+    console.log(updatedFavorites);
     updatedUser = await userModel.findByIdAndUpdate(
       req.params.id,
       {
