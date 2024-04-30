@@ -82,6 +82,7 @@ export const signinUser = asyncHandler(async (req, res, next) => {
       id: user.id,
       username: user.username,
       avatar: user.avatar,
+      favorites: user.favorites,
       mobileNumber: user.mobileNumber,
     });
   } else {
@@ -124,6 +125,7 @@ export const google = asyncHandler(async (req, res, next) => {
       username: user.username,
       avatar: user.avatar,
       mobileNumber: user.mobileNumber,
+      favorites: user.favorites,
     });
   } else {
     // beacause the user not exist, first we create a random password and then we hash the password
@@ -174,6 +176,7 @@ export const google = asyncHandler(async (req, res, next) => {
       username: user.username,
       avatar: user.avatar,
       mobileNumber: user.mobileNumber,
+      favorites: user.favorites,
     });
   }
 });
@@ -194,24 +197,52 @@ export const updateUser = asyncHandler(async (req, res, next) => {
     req.body.password = await bcrypt.hash(req.body.password, 10);
   }
   // console.log("avatar: ", req.body.avatar);
-  console.log("hello");
-  const updatedUser = await userModel.findByIdAndUpdate(
-    req.params.id,
-    {
-      $set: {
-        username: req.body.username,
-        email: req.body.email,
-        password: req.body.password,
-        avatar: req.body.avatar,
-        mobileNumber: req.body.mobileNumber,
+  let updatedUser;
+  console.log("favorite body: ", req.body.favorites);
+  if (req.body.removeFavorites) {
+    console.log("remove favorites");
+    const updatedFavorites = user.favorites.find(
+      (item) => item != req.body.favorites
+    );
+    updatedUser = await userModel.findByIdAndUpdate(
+      req.params.id,
+      {
+        $set: {
+          username: req.body.username,
+          email: req.body.email,
+          password: req.body.password,
+          avatar: req.body.avatar,
+          mobileNumber: req.body.mobileNumber,
+          favorites: updatedFavorites,
+        },
       },
-    },
-    {
-      new: true,
-    }
-  );
+      {
+        new: true,
+      }
+    );
+  } else {
+    console.log("add favorites");
+    updatedUser = await userModel.findByIdAndUpdate(
+      req.params.id,
+      {
+        $addToSet: {
+          favorites: req.body.favorites,
+        },
+        $set: {
+          username: req.body.username,
+          email: req.body.email,
+          password: req.body.password,
+          avatar: req.body.avatar,
+          mobileNumber: req.body.mobileNumber,
+        },
+      },
+      {
+        new: true,
+      }
+    );
+  }
 
-  console.log("updateUser: ", updatedUser);
+  console.log("updated listing: ", updatedUser.favorites);
   if (!updatedUser) {
     res.status(401);
     throw new Error("User data is not valid");
@@ -221,6 +252,7 @@ export const updateUser = asyncHandler(async (req, res, next) => {
     id: updatedUser.id,
     username: updatedUser.username,
     avatar: updatedUser.avatar,
+    favorites: updatedUser.favorites,
   });
 });
 
@@ -259,6 +291,6 @@ export const getUserInfo = asyncHandler(async (req, res, next) => {
     throw new Error("User is not found");
   }
   console.log("getUserInfo: ", user);
-  const { username, email, mobileNumber } = user;
-  res.status(200).json({ username, email, mobileNumber });
+  const { username, email, mobileNumber, favorites } = user;
+  res.status(200).json({ username, email, mobileNumber, favorites });
 });

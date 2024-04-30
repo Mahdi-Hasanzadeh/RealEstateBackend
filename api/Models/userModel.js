@@ -24,6 +24,10 @@ const userSchema = mongoose.Schema(
       type: String,
       default: "",
     },
+    favorites: {
+      type: [mongoose.Schema.Types.ObjectId],
+      ref: "Listing",
+    },
   },
   {
     timestamps: true,
