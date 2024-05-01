@@ -13,7 +13,7 @@ export const validateToken = asyncHandler((req, res, next) => {
       }
       req.user = decoded.user;
       // console.log("validate: ", req.params);
-      console.log("user is valid");
+      // console.log("user is valid");
       next();
     });
   }

@@ -284,15 +284,15 @@ export const getUserInfo = asyncHandler(async (req, res, next) => {
     res.status(401);
     throw new Error("User is not authorized");
   }
-  console.log("get User info");
-  console.log(req.params.id);
+  // console.log("get User info");
+  // console.log(req.params.id);
   const user = await userModel.findOne({ _id: req.params.id });
-  console.log(user);
+  // console.log(user);
   if (!user) {
     res.status(404);
     throw new Error("User is not found");
   }
-  console.log("getUserInfo: ", user);
+  // console.log("getUserInfo: ", user);
   const { username, email, mobileNumber, favorites } = user;
   res.status(200).json({ username, email, mobileNumber, favorites });
 });

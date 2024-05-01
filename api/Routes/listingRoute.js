@@ -6,6 +6,7 @@ import {
   getListingById,
   getListingsWithQuery,
   updateListingById,
+  getListingsById,
 } from "../Controllers/listingController.js";
 // import { validateToken } from "../Middleware/validateToken.js";
 import { validateToken } from "../Middleware/validateToken.js";
@@ -16,9 +17,11 @@ const Router = express.Router();
 //public route
 Router.get("/get", getListingsWithQuery);
 
+Router.get("/favoriteListings", validateToken, getListingsById);
 Router.post("/create", validateToken, createListing);
 Router.get("/:id", validateToken, getListings);
 Router.delete("/:id", validateToken, deleteListingById);
 Router.get("/userListing/:id", validateToken, getListingById);
 Router.put("/:id", validateToken, updateListingById);
+
 export default Router;

@@ -61,7 +61,7 @@ export const getListingById = async (req, res, next) => {
   }
   try {
     const listing = await listingModel.findById(req.params.id);
-    console.log(listing);
+    // console.log(listing);
     if (!listing) {
       res.status(404).json({
         success: false,
@@ -71,8 +71,8 @@ export const getListingById = async (req, res, next) => {
     }
     res.status(200).json(listing);
   } catch (error) {
-    console.log("error: ", error);
-    console.log("error: ", error.message);
+    // console.log("error: ", error);
+    // console.log("error: ", error.message);
     res.status(404).json({
       success: false,
       message: error.message,
@@ -260,6 +260,27 @@ export const updateListingById = async (req, res, next) => {
     console.log("update Failed: ", error.message);
     res.status(404).json({
       success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const getListingsById = async (req, res, next) => {
+  // console.log("get favorites");
+  // console.log(req.query.ListingsId);
+  const listingsIds = req.query.ListingsId.split(",");
+  // console.log(listingsIds);
+  try {
+    const listings = await listingModel.find({
+      _id: { $in: listingsIds },
+    });
+
+    console.log(listings);
+
+    return res.status(201).json(listings);
+  } catch (error) {
+    res.status(404).json({
+      succeess: false,
       message: error.message,
     });
   }
