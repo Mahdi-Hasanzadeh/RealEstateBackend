@@ -44,10 +44,8 @@ export const signinUser = asyncHandler(async (req, res, next) => {
   }
 
   const user = await userModel.findOne({ email });
-  // console.log(user.id);
 
   if (user && (await bcrypt.compare(password, user.password))) {
-    // console.log("user exist with correct password");
     const accessToken = jwt.sign(
       {
         user: {
@@ -181,6 +179,7 @@ export const google = asyncHandler(async (req, res, next) => {
   }
 });
 
+// update user info
 export const updateUser = asyncHandler(async (req, res, next) => {
   if (!req.user) {
     res.status(401);
@@ -196,16 +195,11 @@ export const updateUser = asyncHandler(async (req, res, next) => {
   if (req.body.password) {
     req.body.password = await bcrypt.hash(req.body.password, 10);
   }
-  // console.log("avatar: ", req.body.avatar);
   let updatedUser;
-  console.log("favorite body: ", req.body.favorites);
   if (req.body.removeFavorites) {
-    console.log("remove favorites");
-    console.log("favortes: ", user.favorites);
     const updatedFavorites = user.favorites.filter(
       (item) => item != req.body.favorites
     );
-    console.log(updatedFavorites);
     updatedUser = await userModel.findByIdAndUpdate(
       req.params.id,
       {
@@ -223,7 +217,6 @@ export const updateUser = asyncHandler(async (req, res, next) => {
       }
     );
   } else {
-    console.log("add favorites");
     updatedUser = await userModel.findByIdAndUpdate(
       req.params.id,
       {
@@ -244,7 +237,6 @@ export const updateUser = asyncHandler(async (req, res, next) => {
     );
   }
 
-  console.log("updated listing: ", updatedUser.favorites);
   if (!updatedUser) {
     res.status(401);
     throw new Error("User data is not valid");
@@ -284,15 +276,11 @@ export const getUserInfo = asyncHandler(async (req, res, next) => {
     res.status(401);
     throw new Error("User is not authorized");
   }
-  // console.log("get User info");
-  // console.log(req.params.id);
   const user = await userModel.findOne({ _id: req.params.id });
-  // console.log(user);
   if (!user) {
     res.status(404);
     throw new Error("User is not found");
   }
-  // console.log("getUserInfo: ", user);
   const { username, email, mobileNumber, favorites } = user;
   res.status(200).json({ username, email, mobileNumber, favorites });
 });

@@ -13,7 +13,6 @@ import { validateToken } from "../Middleware/validateToken.js";
 const Router = express.Router();
 
 //Route: api/listing/
-
 //public route
 Router.get("/get", getListingsWithQuery);
 

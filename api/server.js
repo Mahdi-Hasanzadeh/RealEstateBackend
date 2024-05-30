@@ -17,15 +17,16 @@ const corsOptions = {
   optionSuccessStatus: 200,
 };
 
+app.use(express.static("../public"));
 app.use(cors(corsOptions));
 
 app.use(cookieParser());
 app.use(express.json());
+
 app.use("/api/user", userRouter);
 app.use("/api/listing", listingRouter);
 app.use(errorHandler);
-// const connectionString = process.env.CONNECTION_STRING;
-// const connectionString = "mongodb://localhost:27017";
+
 mongoose
   .connect(process.env.CONNECTION_STRING)
   .then(() => {
@@ -37,5 +38,4 @@ mongoose
   })
   .catch((err) => {
     console.log(err.message);
-    // process.exit(1);
   });
