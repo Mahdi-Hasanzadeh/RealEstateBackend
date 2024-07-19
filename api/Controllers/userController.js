@@ -3,6 +3,7 @@ import bcrypt from "bcrypt";
 import { userModel } from "../Models/userModel.js";
 import jwt from "jsonwebtoken";
 
+// create new user
 export const signupUser = asyncHandler(async (req, res, next) => {
   const { username, email, password } = req.body;
   if (!username || !email || !password) {
@@ -35,7 +36,7 @@ export const signupUser = asyncHandler(async (req, res, next) => {
     id: user.id,
   });
 });
-
+// login to an account
 export const signinUser = asyncHandler(async (req, res, next) => {
   const { email, password } = req.body;
   if (!email || !password) {
@@ -88,7 +89,7 @@ export const signinUser = asyncHandler(async (req, res, next) => {
     throw new Error("Email or Password is wrong");
   }
 });
-
+// login with google account
 export const google = asyncHandler(async (req, res, next) => {
   // first we check that if the use exist in the database
   // if exist, then we  send and access token with cookie
@@ -179,7 +180,7 @@ export const google = asyncHandler(async (req, res, next) => {
   }
 });
 
-// update user info
+// update user information
 export const updateUser = asyncHandler(async (req, res, next) => {
   if (!req.user) {
     res.status(401);
@@ -250,6 +251,7 @@ export const updateUser = asyncHandler(async (req, res, next) => {
   });
 });
 
+// delete user account
 export const deleteUser = asyncHandler(async (req, res, next) => {
   if (!req.user) {
     res.status(401);
@@ -271,6 +273,7 @@ export const deleteUser = asyncHandler(async (req, res, next) => {
   res.status(200).json(deletedUser);
 });
 
+// get user information
 export const getUserInfo = asyncHandler(async (req, res, next) => {
   if (!req.user) {
     res.status(401);

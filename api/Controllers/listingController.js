@@ -1,4 +1,19 @@
 import { listingModel } from "../Models/listingModel.js";
+import {
+  getCellPhoneAndTablets,
+  getEstateProducts,
+} from "../Utility/QueryDatabaseFunctions.js";
+import {
+  allBrands,
+  allDigitalEquipment,
+  allProducts,
+  cellPhoneAndTablets,
+  computer,
+  digitalEquipment,
+  estate,
+  transportation,
+} from "../Utility/constants.js";
+import { getQueryFromObjectsValue } from "../Utility/functions.js";
 
 // create a new listing
 export const createListing = async (req, res, next) => {
@@ -108,74 +123,46 @@ export const deleteListingById = async (req, res, next) => {
 
 // return products based on query
 export const getListingsWithQuery = async (req, res, next) => {
-  // queries:  1: searchTerm, 2:type, 3:parking. 4:furnished 5: offer,
-  // 6: sort 7: order 8: limit
+  // * 1: get the category from the query
 
-  const limit = parseInt(req.query.limit) || 9;
-  const startIndex = parseInt(req.query.startIndex) || 0;
+  const category = req.query.category;
+  switch (category) {
+    case allProducts: {
+      break;
+    }
+    case estate: {
+      await getEstateProducts(req, res);
+      break;
+    }
+    case digitalEquipment: {
+      //* get the  subcategory
+      const selectedSubCategory = req.query.subCategory;
 
-  let offer = req.query.offer;
-
-  if (offer == undefined || offer === "false") {
-    offer = { $in: [true, false] };
-  }
-
-  let furnished = req.query.furnished;
-  if (furnished == undefined || furnished === "false") {
-    furnished = { $in: [true, false] };
-  }
-
-  let parking = req.query.parking;
-  if (parking == undefined || parking === "false") {
-    parking = { $in: [true, false] };
-  }
-
-  let type = req.query.type;
-  if (type == undefined || type === "all") {
-    type = { $in: ["sell", "rent"] };
-  }
-
-  const searchTerm = req.query.searchTerm || "";
-
-  const sort = req.query.sort || "desc";
-
-  const order = req.query.order || "createdAt";
-
-  try {
-    // const listings = await listingModel
-    //   .find({
-    //     name: { $regex: searchTerm, $options: "i" }, // search the term in the name
-    //     //section and it is like contain in csharp, and options(i) means that
-    //     //it checks both for uppercase and lowercase.
-    //     offer: offer,
-    //     parking: parking,
-    //     furnished: furnished,
-    //     type: type,
-    //   })
-    //   .sort({
-    //     [order]: sort,
-    //   })
-    //   .limit(limit)
-    //   .skip(startIndex);
-
-    // const listings = await listingModel.find({});
-    const listings = await listingModel
-      .find({
-        name: { $regex: searchTerm, $options: "i" },
-        offer,
-        furnished,
-        parking,
-        type,
-      })
-      .sort({ [order]: sort })
-      .limit(limit)
-      .skip(startIndex);
-    return res.status(200).json({ listings, message: true });
-  } catch (error) {
-    res.status(404).json({
-      success: false,
-      message: error.message,
-    });
+      switch (selectedSubCategory) {
+        case allDigitalEquipment: {
+          // todo
+          break;
+        }
+        case cellPhoneAndTablets: {
+          await getCellPhoneAndTablets(req, res);
+          break;
+        }
+        case computer: {
+          // todo
+          console.log("subCategory: ", computer);
+          break;
+        }
+        case console: {
+          // todo
+          console.log("subCategory: ", console);
+          break;
+        }
+      }
+      break;
+    }
+    case transportation: {
+      break;
+    }
   }
 };
 

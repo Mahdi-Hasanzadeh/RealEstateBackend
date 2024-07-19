@@ -8,7 +8,6 @@ import {
   updateListingById,
   getListingsById,
 } from "../Controllers/listingController.js";
-// import { validateToken } from "../Middleware/validateToken.js";
 import { validateToken } from "../Middleware/validateToken.js";
 const Router = express.Router();
 
