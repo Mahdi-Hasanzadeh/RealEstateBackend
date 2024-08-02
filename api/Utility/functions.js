@@ -1,5 +1,6 @@
 import qs from "qs";
-
+import { mainCategoryModel } from "../Models/Category/MainCategory.js";
+import { subCategoryModel } from "../Models/Category/SubCategory.js";
 export const getQueryFromObjectsKeys = (object) => {
   const parsedValue = qs.parse(object);
   return Object.keys(parsedValue);
@@ -50,4 +51,31 @@ export const getLimit = (req) => {
 
 export const getStartIndex = (req) => {
   return parseInt(req.query.startIndex) || 0;
+};
+
+export const isMainCategoryExist = async (mainCategoryName) => {
+  const mainCategoryExist = await mainCategoryModel.findOne({
+    name: { $regex: mainCategoryName, $options: "i" },
+  });
+
+  return mainCategoryExist;
+};
+
+export const isSubCategoryExist = async (subCategoryName) => {
+  const subCategoryExist = await subCategoryModel.findOne({
+    name: { $regex: subCategoryName, $options: "i" },
+  });
+  return subCategoryExist;
+};
+
+export const EvaluateSubCategory = async (subCategory) => {
+  if (!subCategory) {
+    return {
+      succeess: false,
+      message: "please provide sub category",
+    };
+  }
+  return {
+    succeess: true,
+  };
 };

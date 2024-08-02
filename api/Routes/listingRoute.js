@@ -15,6 +15,7 @@ const Router = express.Router();
 //public route
 Router.get("/get", getListingsWithQuery);
 
+// private route(need validation)
 Router.get("/favoriteListings", validateToken, getListingsById);
 Router.post("/create", validateToken, createListing);
 Router.get("/:id", validateToken, getListings);

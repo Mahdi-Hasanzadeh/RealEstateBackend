@@ -1,6 +1,6 @@
 import asyncHandler from "express-async-handler";
 import bcrypt from "bcrypt";
-import { userModel } from "../Models/userModel.js";
+import { userModel } from "../Models/User/userModel.js";
 import jwt from "jsonwebtoken";
 
 // create new user

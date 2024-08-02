@@ -50,10 +50,22 @@ const cellPhoneAndTabletsSchema = mongoose.Schema(
       type: Array,
       required: [true, "Please provide at least one image"],
     },
+    condition: {
+      type: String,
+      // required: [false, "Please provide the condition of cell phone"],
+    },
     userRef: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: [true, "Please provide user Id"],
+    },
+    mainCategoryId: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: [true, "Please provide main category Id"],
+    },
+    subCategoryId: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: [true, "Please provide sub category Id"],
     },
   },
   {
@@ -62,6 +74,6 @@ const cellPhoneAndTabletsSchema = mongoose.Schema(
 );
 
 export const cellPhoneAndTabletsModel = mongoose.model(
-  "Listing",
+  "cellPhone_Tablets",
   cellPhoneAndTabletsSchema
 );

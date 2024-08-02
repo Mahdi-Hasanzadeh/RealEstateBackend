@@ -1,4 +1,5 @@
-import { listingModel } from "../Models/listingModel.js";
+import { listingModel } from "../Models/Products/listingModel.js";
+import { mainCategoryModel } from "../Models/Category/MainCategory.js";
 import {
   getCellPhoneAndTablets,
   getEstateProducts,
@@ -13,11 +14,17 @@ import {
   estate,
   transportation,
 } from "../Utility/constants.js";
-import { getQueryFromObjectsValue } from "../Utility/functions.js";
+import {
+  EvaluateSubCategory,
+  isMainCategoryExist,
+  isSubCategoryExist,
+} from "../Utility/functions.js";
+import { cellPhoneAndTabletsModel } from "../Models/Products/cellPhoneAndTabletsModel.js";
 
 // create a new listing
 export const createListing = async (req, res, next) => {
   try {
+    // check the user is authenticated or not
     if (!req.user) {
       res.json({
         succeess: false,
@@ -25,11 +32,74 @@ export const createListing = async (req, res, next) => {
       });
       return;
     }
-    const listing = await listingModel.create({
-      ...req.body,
-      userRef: req.user.id,
-    });
-    res.status(201).json(listing);
+
+    //* check that the main category exist or not
+    const { mainCategory, subCategory } = req.body;
+    if (!mainCategory) {
+      res.json({
+        succeess: false,
+        message: "Please provide  main category",
+      });
+      return;
+    }
+
+    const mainCategoryExist = await isMainCategoryExist(mainCategory);
+
+    if (!mainCategoryExist) {
+      res.json({
+        success: false,
+        message: "Main category not exist",
+      });
+      return;
+    }
+
+    switch (mainCategory) {
+      case estate: {
+        console.log(estate);
+        const listing = await listingModel.create({
+          ...req.body,
+          userRef: req.user.id,
+        });
+
+        res.status(201).json(listing);
+        break;
+      }
+      case digitalEquipment:
+        {
+          console.log(digitalEquipment);
+
+          const result = await EvaluateSubCategory(subCategory);
+          if (result.succeess == false) {
+            res.json({
+              succeess: false,
+              message: result.message,
+            });
+            return;
+          }
+          console.log("exist 1");
+          const subCategoryExist = await isSubCategoryExist(subCategory);
+          console.log(subCategory);
+          if (!subCategoryExist) {
+            res.json({
+              succeess: false,
+              message: "Sub Category not exist in database",
+            });
+            return;
+          }
+
+          console.log(mainCategoryExist);
+          console.log(subCategoryExist);
+          const newCellPhone = await cellPhoneAndTabletsModel.create({
+            ...req.body,
+            userRef: req.user.id,
+            mainCategoryId: mainCategoryExist._id,
+            subCategoryId: subCategoryExist._id,
+          });
+          res.status(201).json(newCellPhone);
+        }
+        break;
+    }
+    //* check that the sub category exist or not
   } catch (error) {
     res.json({
       succeess: false,
@@ -68,6 +138,7 @@ export const getListingById = async (req, res, next) => {
   }
   try {
     const listing = await listingModel.findById(req.params.id);
+    console.log(req.params.id, "id new");
     if (!listing) {
       res.status(404).json({
         success: false,

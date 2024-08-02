@@ -1,16 +1,19 @@
 import express from "express";
 import mongoose from "mongoose";
-
+import cookieParser from "cookie-parser";
+import cors from "cors";
 import dotenv from "dotenv";
-dotenv.config();
-const port = process.env.PORT || 8001;
-const app = express();
+
+import MainCategoryRouter from "./Routes/Category/MainCategoryRoute.js";
+
 import userRouter from "./Routes/userRoute.js";
 import errorHandler from "./Middleware/errorHandler.js";
 import listingRouter from "./Routes/listingRoute.js";
-import cookieParser from "cookie-parser";
+dotenv.config();
 
-import cors from "cors";
+const app = express();
+const port = process.env.PORT || 8001;
+
 const corsOptions = {
   origin: ["http://localhost:3000", "https://mahdi-hasanzadeh.github.io"], // port of the frontend
   credentials: true, //access-control-allow-credentials:true
@@ -25,6 +28,7 @@ app.use(express.json());
 
 app.use("/api/user", userRouter);
 app.use("/api/listing", listingRouter);
+app.use("/api/category", MainCategoryRouter);
 app.use(errorHandler);
 
 mongoose

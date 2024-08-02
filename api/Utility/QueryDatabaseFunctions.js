@@ -1,4 +1,4 @@
-import { listingModel } from "../Models/listingModel.js";
+import { listingModel } from "../Models/Products/listingModel.js";
 import { allBrands } from "./constants.js";
 import {
   getLimit,
