@@ -152,6 +152,7 @@ export const getListingById = async (req, res, next) => {
         break;
       }
       case digitalEquipment: {
+        console.log(subCategory,"hello");
         switch (subCategory) {
           case cellPhoneAndTablets: {
             console.log("cell phones");
@@ -243,13 +244,24 @@ export const getListingsWithQuery = async (req, res, next) => {
     case digitalEquipment: {
       //* get the  subcategory
       const selectedSubCategory = req.query.subCategory;
+      console.log(selectedSubCategory,"mahdi");
 
       switch (selectedSubCategory) {
         case allDigitalEquipment: {
+          console.log("cell phone");
+          const products = await cellPhoneAndTabletsModel
+          .find({})
+          .sort({ [req.query.order]: req.query.sort })
+          .limit(req.query.limit || 9)
+          .skip(req.query.startIndex || 0);
+        console.log("prodcuts: ", products);
+        res.status(200).json({ listings: products, message: true });
+          break;
           // todo
           break;
         }
         case cellPhoneAndTablets: {
+          console.log("cell phone");
           await getCellPhoneAndTablets(req, res);
           break;
         }
@@ -262,6 +274,9 @@ export const getListingsWithQuery = async (req, res, next) => {
           // todo
           console.log("subCategory: ", console);
           break;
+        }
+        default:{
+          
         }
       }
       break;

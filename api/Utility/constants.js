@@ -1,6 +1,6 @@
 export const estate = "estate";
 export const allProducts = "all_products";
-export const digitalEquipment = "digital_equipment";
+export const digitalEquipment = "Digital_Equipment";
 export const transportation = "transportation";
 
 export const allDigitalEquipment = "all_digital_equipment";
