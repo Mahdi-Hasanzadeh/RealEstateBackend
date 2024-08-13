@@ -9,9 +9,11 @@ import {
 } from "../Controllers/userController.js";
 
 import { validateToken } from "../Middleware/validateToken.js";
+
 const Router = express.Router();
 
 //@desc POST api/user/signup
+
 // register a user
 
 Router.post("/signup", signupUser);

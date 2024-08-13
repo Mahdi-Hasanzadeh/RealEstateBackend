@@ -55,6 +55,14 @@ const listingSchema = mongoose.Schema(
       ref: "User",
       required: [true, "Please provide user Id"],
     },
+    mainCategoryId: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: [true, "Please provide main category Id"],
+    },
+    mainCategoryName: {
+      type: mongoose.Schema.Types.String,
+      required: [true, "Pleas provide main category name"],
+    },
   },
   {
     timestamps: true,

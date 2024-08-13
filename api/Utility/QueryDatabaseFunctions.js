@@ -1,3 +1,4 @@
+import { cellPhoneAndTabletsModel } from "../Models/Products/cellPhoneAndTabletsModel.js";
 import { listingModel } from "../Models/Products/listingModel.js";
 import { allBrands } from "./constants.js";
 import {
@@ -127,6 +128,11 @@ export const getCellPhoneAndTablets = async (req, res) => {
 
   console.log("query for mobiles: ", query);
   //   todo return the cell phone products
-  const products = await listingModel.find({});
-  res.status(200).json({ listings: [], message: true });
+  const products = await cellPhoneAndTabletsModel
+    .find(query)
+    .sort({ [order]: sort })
+    .limit(limit)
+    .skip(startIndex);
+  console.log("prodcuts: ", products);
+  res.status(200).json({ listings: products, message: true });
 };

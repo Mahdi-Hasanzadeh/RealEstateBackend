@@ -67,6 +67,14 @@ const cellPhoneAndTabletsSchema = mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       required: [true, "Please provide sub category Id"],
     },
+    mainCategoryName: {
+      type: mongoose.Schema.Types.String,
+      required: [true, "Pleas provide main category name"],
+    },
+    subCategoryName: {
+      type: mongoose.Schema.Types.String,
+      required: [true, "Pleas provide sub category name"],
+    },
   },
   {
     timestamps: true,

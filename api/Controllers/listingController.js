@@ -1,5 +1,4 @@
 import { listingModel } from "../Models/Products/listingModel.js";
-import { mainCategoryModel } from "../Models/Category/MainCategory.js";
 import {
   getCellPhoneAndTablets,
   getEstateProducts,
@@ -55,10 +54,11 @@ export const createListing = async (req, res, next) => {
 
     switch (mainCategory) {
       case estate: {
-        console.log(estate);
         const listing = await listingModel.create({
           ...req.body,
           userRef: req.user.id,
+          mainCategoryId: mainCategoryExist._id,
+          mainCategoryName: mainCategoryExist.name,
         });
 
         res.status(201).json(listing);
@@ -66,8 +66,6 @@ export const createListing = async (req, res, next) => {
       }
       case digitalEquipment:
         {
-          console.log(digitalEquipment);
-
           const result = await EvaluateSubCategory(subCategory);
           if (result.succeess == false) {
             res.json({
@@ -76,9 +74,7 @@ export const createListing = async (req, res, next) => {
             });
             return;
           }
-          console.log("exist 1");
           const subCategoryExist = await isSubCategoryExist(subCategory);
-          console.log(subCategory);
           if (!subCategoryExist) {
             res.json({
               succeess: false,
@@ -87,13 +83,13 @@ export const createListing = async (req, res, next) => {
             return;
           }
 
-          console.log(mainCategoryExist);
-          console.log(subCategoryExist);
           const newCellPhone = await cellPhoneAndTabletsModel.create({
             ...req.body,
             userRef: req.user.id,
             mainCategoryId: mainCategoryExist._id,
             subCategoryId: subCategoryExist._id,
+            mainCategoryName: mainCategoryExist.name,
+            subCategoryName: subCategoryExist.name,
           });
           res.status(201).json(newCellPhone);
         }
@@ -137,17 +133,56 @@ export const getListingById = async (req, res, next) => {
     });
   }
   try {
-    const listing = await listingModel.findById(req.params.id);
-    console.log(req.params.id, "id new");
-    if (!listing) {
+    const params = req.params.id.split(",");
+    const id = params[0];
+    const mainCategory = params[1];
+    const subCategory = params[2];
+
+    console.log(mainCategory, "mah");
+    console.log(mainCategory === estate);
+    console.log(subCategory === cellPhoneAndTablets);
+
+    let product = null;
+    switch (mainCategory) {
+      case estate: {
+        console.log(product);
+        product = await listingModel.findOne({
+          _id: id,
+        });
+        break;
+      }
+      case digitalEquipment: {
+        switch (subCategory) {
+          case cellPhoneAndTablets: {
+            console.log("cell phones");
+
+            product = await cellPhoneAndTabletsModel.findById(id);
+            break;
+          }
+          case computer: {
+            console.log("computer");
+            break;
+          }
+          case console: {
+            console.log("console");
+            break;
+          }
+        }
+        break;
+      }
+    }
+
+    console.log(product);
+    if (!product) {
       res.status(404).json({
         success: false,
         message: "Not found",
       });
       return;
     }
-    res.status(200).json(listing);
+    res.status(200).json(product);
   } catch (error) {
+    console.log(error);
     res.status(404).json({
       success: false,
       message: error.message,
