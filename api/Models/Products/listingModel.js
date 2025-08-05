@@ -20,7 +20,8 @@ const listingSchema = mongoose.Schema(
     },
     discountPrice: {
       type: Number,
-      required: [true, "Please provide discount Price"],
+      // required: [true, "Please provide discount Price"],
+      default: null,
     },
     bedrooms: {
       type: Number,

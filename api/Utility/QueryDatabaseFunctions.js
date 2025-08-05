@@ -60,7 +60,6 @@ export const getEstateProducts = async (req, res) => {
 
     return res.status(200).json({ listings, message: true });
   } catch (error) {
-    console.log(error);
     res.status(404).json({
       success: false,
       message: error.message,
@@ -107,16 +106,13 @@ export const getCellPhoneAndTablets = async (req, res) => {
   //* method 1
   //* const storage = getQueryFromObjects(req.query.storage);
   //* method 2 // we send the query from th front-end,example:['mb512','gb1'],
-  //* console.log(req.query.storage); // *it will be like this: 0=512mb
 
   const storage = getQueryFromObjectsValue(req.query.storage);
-  // console.log("storage", storage);
   if (storage.length !== 0) {
     query.storage = { $in: storage };
   }
 
   const RAM = getQueryFromObjectsValue(req.query.RAM);
-  // console.log("RAM", RAM);
   if (RAM.length !== 0) {
     query.RAM = { $in: RAM };
   }
@@ -126,13 +122,11 @@ export const getCellPhoneAndTablets = async (req, res) => {
     query.color = { $in: color };
   }
 
-  console.log("query for mobiles: ", query);
   //   todo return the cell phone products
   const products = await cellPhoneAndTabletsModel
     .find(query)
     .sort({ [order]: sort })
     .limit(limit)
     .skip(startIndex);
-  console.log("prodcuts: ", products);
   res.status(200).json({ listings: products, message: true });
 };

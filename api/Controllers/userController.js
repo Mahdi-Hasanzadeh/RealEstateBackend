@@ -91,6 +91,7 @@ export const signinUser = asyncHandler(async (req, res, next) => {
 });
 // login with google account
 export const google = asyncHandler(async (req, res, next) => {
+  console.log(req.body);
   // first we check that if the use exist in the database
   // if exist, then we  send and access token with cookie
   // and if the use not exist, first we need to generate

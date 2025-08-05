@@ -20,7 +20,8 @@ const cellPhoneAndTabletsSchema = mongoose.Schema(
     },
     discountPrice: {
       type: Number,
-      required: [true, "Please provide discount Price"],
+      // required: [t, "Please provide discount Price"],
+      default: null,
     },
     brand: {
       type: String,

@@ -37,7 +37,7 @@ export const createListing = async (req, res, next) => {
     if (!mainCategory) {
       res.json({
         succeess: false,
-        message: "Please provide  main category",
+        message: "Please provide main category",
       });
       return;
     }
@@ -114,7 +114,11 @@ export const getListings = async (req, res, next) => {
     return;
   }
   try {
-    const userListing = await listingModel.find({ userRef: req.user.id });
+    const estate = await listingModel.find({ userRef: req.user.id });
+    const digitalEquipments = await cellPhoneAndTabletsModel.find({
+      userRef: req.user.id,
+    });
+    const userListing = estate.concat(digitalEquipments);
     res.status(200).json(userListing);
   } catch (error) {
     res.json({
@@ -127,45 +131,36 @@ export const getListings = async (req, res, next) => {
 // return a single product by id
 export const getListingById = async (req, res, next) => {
   if (!req.user) {
-    res.status(401).json({
+    return res.status(401).json({
       success: false,
       message: "User is not authorized",
     });
   }
+
   try {
     const params = req.params.id.split(",");
     const id = params[0];
-    const mainCategory = params[1];
-    const subCategory = params[2];
-
-    console.log(mainCategory, "mah");
-    console.log(mainCategory === estate);
-    console.log(subCategory === cellPhoneAndTablets);
+    const mainCategory = params[1]?.toLowerCase();
+    const subCategory = params[2]?.toLowerCase();
 
     let product = null;
     switch (mainCategory) {
       case estate: {
-        console.log(product);
         product = await listingModel.findOne({
           _id: id,
         });
         break;
       }
-      case digitalEquipment: {
-        console.log(subCategory,"hello");
+      case digitalEquipment.toLowerCase(): {
         switch (subCategory) {
           case cellPhoneAndTablets: {
-            console.log("cell phones");
-
             product = await cellPhoneAndTabletsModel.findById(id);
             break;
           }
           case computer: {
-            console.log("computer");
             break;
           }
           case console: {
-            console.log("console");
             break;
           }
         }
@@ -173,18 +168,15 @@ export const getListingById = async (req, res, next) => {
       }
     }
 
-    console.log(product);
     if (!product) {
-      res.status(404).json({
+      return res.status(404).json({
         success: false,
-        message: "Not found",
+        message: "Listing Not Found",
       });
-      return;
     }
-    res.status(200).json(product);
+    return res.status(200).json(product);
   } catch (error) {
-    console.log(error);
-    res.status(404).json({
+    return res.status(404).json({
       success: false,
       message: error.message,
     });
@@ -200,28 +192,38 @@ export const deleteListingById = async (req, res, next) => {
     });
     return;
   }
-
+  const { mainCategoryName } = req.body;
   try {
-    const listing = await listingModel.find({ _id: req.params.id });
-    if (!listing) {
-      res.status(404).json({
-        success: false,
-        message: "Listing not found",
-      });
-      return;
-    }
+    if (mainCategoryName.toLowerCase() == estate) {
+      const listing = await listingModel.findById(req.params.id);
+      if (!listing) {
+        return res.status(404).json({
+          success: false,
+          message: "Listing not found",
+        });
+      }
+      await listingModel.findByIdAndDelete(req.params.id);
 
-    const deletedListing = await listingModel.findByIdAndDelete(req.params.id);
-    if (!deletedListing) {
-      res.status(404).json({
-        success: false,
-        message: "Listing is not found",
-      });
-      return;
+      return res
+        .status(200)
+        .json({ succeess: true, message: "Listing Deleted" });
+    } else if (mainCategoryName == digitalEquipment) {
+      const digitalProduct = await cellPhoneAndTabletsModel.findById(
+        req.params.id
+      );
+      if (!digitalProduct) {
+        return res.status(404).json({
+          success: false,
+          message: "Listing not found",
+        });
+      }
+      await cellPhoneAndTabletsModel.findByIdAndDelete(req.params.id);
+      return res
+        .status(200)
+        .json({ succeess: true, message: "Digital Product Deleted" });
     }
-    res.status(200).json(deletedListing);
   } catch (error) {
-    res.status(404).json({
+    return res.status(404).json({
       success: false,
       message: error.message,
     });
@@ -234,9 +236,6 @@ export const getListingsWithQuery = async (req, res, next) => {
 
   const category = req.query.category;
   switch (category) {
-    case allProducts: {
-      break;
-    }
     case estate: {
       await getEstateProducts(req, res);
       break;
@@ -244,44 +243,34 @@ export const getListingsWithQuery = async (req, res, next) => {
     case digitalEquipment: {
       //* get the  subcategory
       const selectedSubCategory = req.query.subCategory;
-      console.log(selectedSubCategory,"mahdi");
 
       switch (selectedSubCategory) {
-        case allDigitalEquipment: {
-          console.log("cell phone");
-          const products = await cellPhoneAndTabletsModel
-          .find({})
-          .sort({ [req.query.order]: req.query.sort })
-          .limit(req.query.limit || 9)
-          .skip(req.query.startIndex || 0);
-        console.log("prodcuts: ", products);
-        res.status(200).json({ listings: products, message: true });
-          break;
-          // todo
-          break;
-        }
+        // case allDigitalEquipment: {
+        //   const products = await cellPhoneAndTabletsModel
+        //     .find({})
+        //     .sort({ [req.query.order]: req.query.sort })
+        //     .limit(req.query.limit || 9)
+        //     .skip(req.query.startIndex || 0);
+        //   res.status(200).json({ listings: products, message: true });
+        //   break;
+        //   // todo
+        //   break;
+        // }
         case cellPhoneAndTablets: {
-          console.log("cell phone");
           await getCellPhoneAndTablets(req, res);
           break;
         }
         case computer: {
           // todo
-          console.log("subCategory: ", computer);
           break;
         }
         case console: {
           // todo
-          console.log("subCategory: ", console);
           break;
         }
-        default:{
-          
+        default: {
         }
       }
-      break;
-    }
-    case transportation: {
       break;
     }
   }
@@ -293,19 +282,17 @@ export const updateListingById = async (req, res, next) => {
     const listing = await listingModel.findById(req.params.id);
 
     if (!listing) {
-      res.status(404).json({
+      return res.status(404).json({
         success: false,
-        message: "Listing not found",
+        message: "Listing Not Found",
       });
-      return;
     }
 
     if (listing.userRef != req.body.userRef) {
-      res.status(401).json({
+      return res.status(401).json({
         succeess: false,
         message: "Your are not allowed to update another user's listing",
       });
-      return;
     }
 
     const updatedListing = await listingModel.findByIdAndUpdate(
@@ -331,12 +318,12 @@ export const updateListingById = async (req, res, next) => {
       }
     );
 
-    res.status(201).json({
+    return res.status(201).json({
       succeess: true,
       updatedListing,
     });
   } catch (error) {
-    res.status(404).json({
+    return res.status(404).json({
       success: false,
       message: error.message,
     });
@@ -347,14 +334,21 @@ export const updateListingById = async (req, res, next) => {
 // *(return all products that is in favorites list of a user)
 export const getListingsById = async (req, res, next) => {
   const listingsIds = req.query.ListingsId.split(",");
+
   try {
-    const listings = await listingModel.find({
+    const estate = await listingModel.find({
       _id: { $in: listingsIds },
     });
-    console.log(listings);
+
+    const digitalEquipments = await cellPhoneAndTabletsModel.find({
+      _id: { $in: listingsIds },
+    });
+
+    const listings = estate.concat(digitalEquipments);
+
     return res.status(201).json(listings);
   } catch (error) {
-    res.status(404).json({
+    return res.status(404).json({
       succeess: false,
       message: error.message,
     });

@@ -1,7 +1,11 @@
 const errorHandler = (error, req, res, next) => {
   let statusCode = res.statusCode ? res.statusCode : 500;
-  console.log("statusCode: ", statusCode);
-  console.log("errorHandlerFile: ", error);
+  // Show logs only in development mode
+  if (process.env.NODE_ENV === "development") {
+    console.log("statusCode: ", statusCode);
+    console.log("errorHandlerFile: ", error);
+  }
+
   if (error.code) {
     statusCode = error.code;
   }
@@ -46,7 +50,7 @@ const errorHandler = (error, req, res, next) => {
         stackTrace: error.stack,
       });
     case 11000:
-      res.status(403).json({
+      res.status(400).json({
         title: "Duplicate value",
         message: "email or username is not available(duplicate value)",
         stackTrace: error.stack,
