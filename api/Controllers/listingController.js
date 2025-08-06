@@ -354,3 +354,83 @@ export const getListingsById = async (req, res, next) => {
     });
   }
 };
+
+export const getCellPhoneById = async (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      message: "User is not authorized",
+    });
+  }
+  const { cellPhoneId } = req.params;
+  try {
+    const product = await cellPhoneAndTabletsModel.findById(cellPhoneId);
+    if (!product) {
+      return res
+        .status(404)
+        .json({ succeess: false, message: "Product Not Found" });
+    }
+    return res.status(200).json({ succeess: true, data: product });
+  } catch (error) {
+    return res.status(500).json({ message: "Server Error" });
+  }
+};
+
+export const updateCellPhoneById = async (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      message: "User is not authorized",
+    });
+  }
+  const currentUser = req.user.id;
+  try {
+    const listing = await cellPhoneAndTabletsModel.findById(req.params.id);
+
+    if (!listing) {
+      return res.status(404).json({
+        success: false,
+        message: "Listing Not Found",
+      });
+    }
+
+    if (listing.userRef != currentUser) {
+      return res.status(401).json({
+        succeess: false,
+        message: "Your are not allowed to update another user's listing",
+      });
+    }
+
+    await cellPhoneAndTabletsModel.findByIdAndUpdate(
+      req.params.id,
+      {
+        $set: {
+          name: req.body.name,
+          description: req.body.description,
+          address: req.body.address,
+          regularPrice: req.body.regularPrice,
+          imageURLs: req.body.imageURLs,
+          brand: req.body.brand,
+          storage: req.body.storage,
+          color: req.body.color,
+          RAM: req.body.RAM,
+          discountPrice: req.body.offer ? req.body.discountPrice : 0,
+          offer: req.body.offer,
+        },
+      },
+      {
+        new: true,
+      }
+    );
+
+    return res.status(201).json({
+      succeess: true,
+      message: "Listing Updated",
+    });
+  } catch (error) {
+    return res.status(404).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};

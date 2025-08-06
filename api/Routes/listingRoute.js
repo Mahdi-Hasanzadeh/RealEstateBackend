@@ -7,6 +7,8 @@ import {
   getListingsWithQuery,
   updateListingById,
   getListingsById,
+  getCellPhoneById,
+  updateCellPhoneById,
 } from "../Controllers/listingController.js";
 import { validateToken } from "../Middleware/validateToken.js";
 const Router = express.Router();
@@ -22,5 +24,7 @@ Router.get("/:id", validateToken, getListings);
 Router.delete("/:id", validateToken, deleteListingById);
 Router.get("/userListing/:id", validateToken, getListingById);
 Router.put("/:id", validateToken, updateListingById);
+Router.get("/cellPhone/:cellPhoneId", validateToken, getCellPhoneById);
+Router.put("/cellPhone/:id", validateToken, updateCellPhoneById);
 
 export default Router;

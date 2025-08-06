@@ -20,8 +20,11 @@ const cellPhoneAndTabletsSchema = mongoose.Schema(
     },
     discountPrice: {
       type: Number,
-      // required: [t, "Please provide discount Price"],
       default: null,
+    },
+    offer: {
+      type: Boolean,
+      default: false,
     },
     brand: {
       type: String,
@@ -30,10 +33,6 @@ const cellPhoneAndTabletsSchema = mongoose.Schema(
     model: {
       type: String,
       //   required: [true, "Please provide model"],
-    },
-    numberOfSimCard: {
-      type: Number,
-      //   required: [true, "Please provide nu"],
     },
     storage: {
       type: String,
@@ -50,10 +49,6 @@ const cellPhoneAndTabletsSchema = mongoose.Schema(
     imageURLs: {
       type: Array,
       required: [true, "Please provide at least one image"],
-    },
-    condition: {
-      type: String,
-      // required: [false, "Please provide the condition of cell phone"],
     },
     userRef: {
       type: mongoose.Schema.Types.ObjectId,
