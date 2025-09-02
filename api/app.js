@@ -15,9 +15,8 @@ const app = express();
 
 const corsOptions = {
   origin: [
-    "http://localhost:3000",
     "https://smarttrade-afg.netlify.app/",
-    "http://localhost:5173",
+    "http://localhost:3000",
     "https://mahdi-hasanzadeh.github.io",
   ],
   credentials: true,
