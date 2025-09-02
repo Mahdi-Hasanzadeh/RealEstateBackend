@@ -28,10 +28,6 @@ app.use(cors(corsOptions));
 app.use(cookieParser());
 app.use(express.json());
 
-app.use("/", (req, res) => {
-  return "Server is running";
-});
-
 app.use("/api/user", userRouter);
 app.use("/api/listing", listingRouter);
 app.use("/api/category", MainCategoryRouter);
