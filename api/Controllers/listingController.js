@@ -1,6 +1,7 @@
 import { listingModel } from "../Models/Products/listingModel.js";
 import {
   getCellPhoneAndTablets,
+  getComputers,
   getEstateProducts,
 } from "../Utility/QueryDatabaseFunctions.js";
 import {
@@ -14,18 +15,21 @@ import {
   transportation,
 } from "../Utility/constants.js";
 import {
-  EvaluateSubCategory,
   isMainCategoryExist,
   isSubCategoryExist,
 } from "../Utility/functions.js";
 import { cellPhoneAndTabletsModel } from "../Models/Products/cellPhoneAndTabletsModel.js";
+import { ListingDeletionModel } from "../Models/Deletions/ListingsDeletions.js";
+import { mainCategoryModel } from "../Models/Category/MainCategory.js";
+import { subCategoryModel } from "../Models/Category/SubCategory.js";
+import { computerModel } from "../Models/Products/computerModel.js";
 
 // create a new listing
 export const createListing = async (req, res, next) => {
   try {
     // check the user is authenticated or not
     if (!req.user) {
-      res.json({
+      res.status(401).json({
         succeess: false,
         message: "User is not authorized",
       });
@@ -35,21 +39,23 @@ export const createListing = async (req, res, next) => {
     //* check that the main category exist or not
     const { mainCategory, subCategory } = req.body;
     if (!mainCategory) {
-      res.json({
+      res.status(404).json({
         succeess: false,
         message: "Please provide main category",
       });
       return;
     }
 
-    const mainCategoryExist = await isMainCategoryExist(mainCategory);
+    let mainCategoryExist = await isMainCategoryExist(mainCategory);
 
     if (!mainCategoryExist) {
-      res.json({
-        success: false,
-        message: "Main category not exist",
+      const response = await mainCategoryModel.create({
+        name: mainCategory,
       });
-      return;
+      mainCategoryExist = {
+        _id: response._id,
+        name: response.name,
+      };
     }
 
     switch (mainCategory) {
@@ -60,69 +66,97 @@ export const createListing = async (req, res, next) => {
           mainCategoryId: mainCategoryExist._id,
           mainCategoryName: mainCategoryExist.name,
         });
-
         res.status(201).json(listing);
         break;
       }
       case digitalEquipment:
         {
-          const result = await EvaluateSubCategory(subCategory);
-          if (result.succeess == false) {
-            res.json({
+          if (!subCategory) {
+            return res.status(404).json({
               succeess: false,
-              message: result.message,
+              message: "please provide sub category",
             });
-            return;
-          }
-          const subCategoryExist = await isSubCategoryExist(subCategory);
-          if (!subCategoryExist) {
-            res.json({
-              succeess: false,
-              message: "Sub Category not exist in database",
-            });
-            return;
           }
 
-          const newCellPhone = await cellPhoneAndTabletsModel.create({
-            ...req.body,
-            userRef: req.user.id,
-            mainCategoryId: mainCategoryExist._id,
-            subCategoryId: subCategoryExist._id,
-            mainCategoryName: mainCategoryExist.name,
-            subCategoryName: subCategoryExist.name,
-          });
-          res.status(201).json(newCellPhone);
+          let subCategoryExist = await isSubCategoryExist(subCategory);
+          if (!subCategoryExist) {
+            const response = await subCategoryModel.create({
+              name: subCategory,
+              mainCategoryRef: mainCategoryExist._id,
+            });
+
+            subCategoryExist = {
+              _id: response._id,
+              name: response.name,
+            };
+          }
+
+          switch (subCategoryExist.name) {
+            case cellPhoneAndTablets: {
+              const newCellPhone = await cellPhoneAndTabletsModel.create({
+                ...req.body,
+                userRef: req.user.id,
+                mainCategoryId: mainCategoryExist._id,
+                subCategoryId: subCategoryExist._id,
+                mainCategoryName: mainCategoryExist.name,
+                subCategoryName: subCategoryExist.name,
+              });
+              res.status(201).json(newCellPhone);
+              break;
+            }
+            case computer: {
+              const newComputer = await computerModel.create({
+                ...req.body,
+                userRef: req.user.id,
+                mainCategoryId: mainCategoryExist._id,
+                subCategoryId: subCategoryExist._id,
+                mainCategoryName: mainCategoryExist.name,
+                subCategoryName: subCategoryExist.name,
+              });
+              res.status(201).json(newComputer);
+              break;
+            }
+          }
         }
         break;
     }
     //* check that the sub category exist or not
   } catch (error) {
-    res.json({
+    console.log(error);
+    res.status(500).json({
       succeess: false,
       message: error.message,
     });
   }
 };
 
-//Return all listings of a specific user
+// Return all listings of a specific user
 export const getListings = async (req, res, next) => {
   if (!req.user) {
-    res.status(401).json({
-      succeess: false,
-      message: "user is not authorized",
+    return res.status(401).json({
+      success: false,
+      message: "User is not authorized",
     });
-    return;
   }
+
   try {
-    const estate = await listingModel.find({ userRef: req.user.id });
-    const digitalEquipments = await cellPhoneAndTabletsModel.find({
-      userRef: req.user.id,
-    });
-    const userListing = estate.concat(digitalEquipments);
-    res.status(200).json(userListing);
+    // Fetch all types of listings for the user
+    const [estateListings, digitalEquipments, computers] = await Promise.all([
+      listingModel.find({ userRef: req.user.id, isDeleted: false }),
+      cellPhoneAndTabletsModel.find({ userRef: req.user.id, isDeleted: false }),
+      computerModel.find({ userRef: req.user.id, isDeleted: false }),
+    ]);
+
+    // Combine all listings into one array
+    const allListings = [...estateListings, ...digitalEquipments, ...computers];
+
+    // Optional: sort by createdAt descending
+    allListings.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    res.status(200).json(allListings);
   } catch (error) {
-    res.json({
-      succeess: false,
+    res.status(500).json({
+      success: false,
       message: error.message,
     });
   }
@@ -148,19 +182,25 @@ export const getListingById = async (req, res, next) => {
       case estate: {
         product = await listingModel.findOne({
           _id: id,
+          isDeleted: false,
         });
         break;
       }
       case digitalEquipment.toLowerCase(): {
         switch (subCategory) {
           case cellPhoneAndTablets: {
-            product = await cellPhoneAndTabletsModel.findById(id);
+            product = await cellPhoneAndTabletsModel.findOne({
+              _id: id,
+              isDeleted: false,
+            });
+
             break;
           }
           case computer: {
-            break;
-          }
-          case console: {
+            product = await computerModel.findOne({
+              _id: id,
+              isDeleted: false,
+            });
             break;
           }
         }
@@ -174,6 +214,7 @@ export const getListingById = async (req, res, next) => {
         message: "Listing Not Found",
       });
     }
+
     return res.status(200).json(product);
   } catch (error) {
     return res.status(404).json({
@@ -183,47 +224,86 @@ export const getListingById = async (req, res, next) => {
   }
 };
 
-//delete a single product by id
+// delete a single product by id
 export const deleteListingById = async (req, res, next) => {
   if (!req.user) {
-    res.status(401).json({
-      succeess: false,
-      message: "user is not authorized",
+    return res.status(401).json({
+      success: false,
+      message: "User is not authorized",
     });
-    return;
   }
-  const { mainCategoryName } = req.body;
-  try {
-    if (mainCategoryName.toLowerCase() == estate) {
-      const listing = await listingModel.findById(req.params.id);
-      if (!listing) {
-        return res.status(404).json({
-          success: false,
-          message: "Listing not found",
-        });
-      }
-      await listingModel.findByIdAndDelete(req.params.id);
 
-      return res
-        .status(200)
-        .json({ succeess: true, message: "Listing Deleted" });
-    } else if (mainCategoryName == digitalEquipment) {
-      const digitalProduct = await cellPhoneAndTabletsModel.findById(
-        req.params.id
-      );
-      if (!digitalProduct) {
-        return res.status(404).json({
-          success: false,
-          message: "Listing not found",
+  const { mainCategoryName, subCategoryName, reason } = req.body;
+
+  try {
+    let listing;
+
+    switch (mainCategoryName) {
+      case estate:
+        listing = await listingModel.findById(req.params.id);
+        if (!listing) {
+          return res.status(404).json({
+            success: false,
+            message: "Listing not found",
+          });
+        }
+        await listingModel.findByIdAndUpdate(req.params.id, {
+          isDeleted: true,
         });
-      }
-      await cellPhoneAndTabletsModel.findByIdAndDelete(req.params.id);
-      return res
-        .status(200)
-        .json({ succeess: true, message: "Digital Product Deleted" });
+        break;
+
+      case digitalEquipment:
+        switch (subCategoryName) {
+          case cellPhoneAndTablets: {
+            listing = await cellPhoneAndTabletsModel.findById(req.params.id);
+            if (!listing) {
+              return res.status(404).json({
+                success: false,
+                message: "Cell Phone not found",
+              });
+            }
+            await cellPhoneAndTabletsModel.findByIdAndUpdate(req.params.id, {
+              isDeleted: true,
+            });
+            break;
+          }
+          case computer: {
+            listing = await computerModel.findById(req.params.id);
+            if (!listing) {
+              return res.status(404).json({
+                success: false,
+                message: "Computer not found",
+              });
+            }
+            await computerModel.findByIdAndUpdate(req.params.id, {
+              isDeleted: true,
+            });
+            break;
+          }
+        }
+
+        break;
+
+      default:
+        return res.status(400).json({
+          success: false,
+          message: "Invalid main category",
+        });
     }
+
+    // Record the deletion in audit collection
+    await ListingDeletionModel.create({
+      productId: listing._id,
+      collectionName: mainCategoryName,
+      deletedBy: req.user.id,
+      reason,
+    });
+
+    return res
+      .status(200)
+      .json({ success: true, message: "Listing deleted successfully" });
   } catch (error) {
-    return res.status(404).json({
+    return res.status(500).json({
       success: false,
       message: error.message,
     });
@@ -233,7 +313,6 @@ export const deleteListingById = async (req, res, next) => {
 // return products based on query
 export const getListingsWithQuery = async (req, res, next) => {
   // * 1: get the category from the query
-
   const category = req.query.category;
   switch (category) {
     case estate: {
@@ -245,30 +324,16 @@ export const getListingsWithQuery = async (req, res, next) => {
       const selectedSubCategory = req.query.subCategory;
 
       switch (selectedSubCategory) {
-        // case allDigitalEquipment: {
-        //   const products = await cellPhoneAndTabletsModel
-        //     .find({})
-        //     .sort({ [req.query.order]: req.query.sort })
-        //     .limit(req.query.limit || 9)
-        //     .skip(req.query.startIndex || 0);
-        //   res.status(200).json({ listings: products, message: true });
-        //   break;
-        //   // todo
-        //   break;
-        // }
         case cellPhoneAndTablets: {
           await getCellPhoneAndTablets(req, res);
           break;
         }
         case computer: {
-          // todo
-          break;
-        }
-        case console: {
-          // todo
+          await getComputers(req, res);
           break;
         }
         default: {
+          break;
         }
       }
       break;
@@ -323,6 +388,7 @@ export const updateListingById = async (req, res, next) => {
       updatedListing,
     });
   } catch (error) {
+    console.log(error);
     return res.status(404).json({
       success: false,
       message: error.message,
@@ -333,23 +399,31 @@ export const updateListingById = async (req, res, next) => {
 //return a list of products based on several ids
 // *(return all products that is in favorites list of a user)
 export const getListingsById = async (req, res, next) => {
-  const listingsIds = req.query.ListingsId.split(",");
-
   try {
-    const estate = await listingModel.find({
-      _id: { $in: listingsIds },
-    });
+    // Validate query param
+    if (!req.query.ListingsId) {
+      return res.status(400).json({
+        success: false,
+        message: "ListingsId query parameter is required",
+      });
+    }
 
-    const digitalEquipments = await cellPhoneAndTabletsModel.find({
-      _id: { $in: listingsIds },
-    });
+    const listingsIds = req.query.ListingsId.split(",");
 
-    const listings = estate.concat(digitalEquipments);
+    // Run all DB queries in parallel
+    const [estate, digitalEquipments, computers] = await Promise.all([
+      listingModel.find({ _id: { $in: listingsIds } }),
+      cellPhoneAndTabletsModel.find({ _id: { $in: listingsIds } }),
+      computerModel.find({ _id: { $in: listingsIds } }),
+    ]);
 
-    return res.status(201).json(listings);
+    // Merge results
+    const listings = [...estate, ...digitalEquipments, ...computers];
+
+    return res.status(200).json(listings);
   } catch (error) {
-    return res.status(404).json({
-      succeess: false,
+    return res.status(500).json({
+      success: false,
       message: error.message,
     });
   }
@@ -364,7 +438,11 @@ export const getCellPhoneById = async (req, res, next) => {
   }
   const { cellPhoneId } = req.params;
   try {
-    const product = await cellPhoneAndTabletsModel.findById(cellPhoneId);
+    const product = await cellPhoneAndTabletsModel.findOne({
+      _id: cellPhoneId,
+      isDeleted: false,
+    });
+
     if (!product) {
       return res
         .status(404)
@@ -413,6 +491,89 @@ export const updateCellPhoneById = async (req, res, next) => {
           brand: req.body.brand,
           storage: req.body.storage,
           color: req.body.color,
+          RAM: req.body.RAM,
+          discountPrice: req.body.offer ? req.body.discountPrice : 0,
+          offer: req.body.offer,
+        },
+      },
+      {
+        new: true,
+      }
+    );
+
+    return res.status(201).json({
+      succeess: true,
+      message: "Listing Updated",
+    });
+  } catch (error) {
+    return res.status(404).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const getComputerById = async (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      message: "User is not authorized",
+    });
+  }
+  const { computerId } = req.params;
+  try {
+    const product = await computerModel.findOne({
+      _id: computerId,
+      isDeleted: false,
+    });
+
+    if (!product) {
+      return res
+        .status(404)
+        .json({ succeess: false, message: "Product Not Found" });
+    }
+    return res.status(200).json({ succeess: true, data: product });
+  } catch (error) {
+    return res.status(500).json({ message: "Server Error" });
+  }
+};
+
+export const updateComputerById = async (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      message: "User is not authorized",
+    });
+  }
+  const currentUser = req.user.id;
+  try {
+    const listing = await computerModel.findById(req.params.id);
+
+    if (!listing) {
+      return res.status(404).json({
+        success: false,
+        message: "Listing Not Found",
+      });
+    }
+
+    if (listing.userRef != currentUser) {
+      return res.status(401).json({
+        succeess: false,
+        message: "Your are not allowed to update another user's listing",
+      });
+    }
+
+    await computerModel.findByIdAndUpdate(
+      req.params.id,
+      {
+        $set: {
+          name: req.body.name,
+          description: req.body.description,
+          address: req.body.address,
+          regularPrice: req.body.regularPrice,
+          imageURLs: req.body.imageURLs,
+          brand: req.body.brand,
+          storage: req.body.storage,
           RAM: req.body.RAM,
           discountPrice: req.body.offer ? req.body.discountPrice : 0,
           offer: req.body.offer,

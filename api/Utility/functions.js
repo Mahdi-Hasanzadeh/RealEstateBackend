@@ -67,15 +67,3 @@ export const isSubCategoryExist = async (subCategoryName) => {
   });
   return subCategoryExist;
 };
-
-export const EvaluateSubCategory = async (subCategory) => {
-  if (!subCategory) {
-    return {
-      succeess: false,
-      message: "please provide sub category",
-    };
-  }
-  return {
-    succeess: true,
-  };
-};

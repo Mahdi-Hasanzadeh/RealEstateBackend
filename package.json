@@ -8,7 +8,7 @@
     "server": "nodemon ./api/server.js",
     "start": "node ./api/server.js",
     "build": "npm install",
-    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
+    "test": "set NODE_OPTIONS=--experimental-vm-modules && jest --runInBand"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",

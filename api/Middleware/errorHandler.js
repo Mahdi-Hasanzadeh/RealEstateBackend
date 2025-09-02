@@ -49,12 +49,14 @@ const errorHandler = (error, req, res, next) => {
         message: error.message,
         stackTrace: error.stack,
       });
+      break;
     case 11000:
       res.status(400).json({
         title: "Duplicate value",
         message: "email or username is not available(duplicate value)",
         stackTrace: error.stack,
       });
+      break;
   }
 };
 

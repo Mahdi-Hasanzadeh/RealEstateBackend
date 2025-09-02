@@ -1,4 +1,5 @@
 import { cellPhoneAndTabletsModel } from "../Models/Products/cellPhoneAndTabletsModel.js";
+import { computerModel } from "../Models/Products/computerModel.js";
 import { listingModel } from "../Models/Products/listingModel.js";
 import { allBrands } from "./constants.js";
 import {
@@ -53,7 +54,7 @@ export const getEstateProducts = async (req, res) => {
 
   try {
     const listings = await listingModel
-      .find(query)
+      .find({ isDeleted: false, ...query })
       .sort({ [order]: sort })
       .limit(limit)
       .skip(startIndex);
@@ -80,7 +81,8 @@ export const getQueryForGeneralFilters = (req) => {
   };
 
   if (Object.keys(priceQuery).length !== 0) {
-    query.regularPrice = priceQuery;
+    // Match either regularPrice OR discountPrice
+    query.$or = [{ regularPrice: priceQuery }, { discountPrice: priceQuery }];
   }
   return query;
 };
@@ -96,8 +98,11 @@ export const getCellPhoneAndTablets = async (req, res) => {
 
   const sort = getSort(req);
 
+  const brand =
+    req.query.brand && req.query.brand.trim() !== ""
+      ? req.query.brand.trim()
+      : allBrands;
   //* get the brand
-  const brand = req.query.brand;
   if (brand !== allBrands) {
     query.brand = brand;
   }
@@ -122,9 +127,51 @@ export const getCellPhoneAndTablets = async (req, res) => {
     query.color = { $in: color };
   }
 
-  //   todo return the cell phone products
   const products = await cellPhoneAndTabletsModel
-    .find(query)
+    .find({ isDeleted: false, ...query })
+    .sort({ [order]: sort })
+    .limit(limit)
+    .skip(startIndex);
+  res.status(200).json({ listings: products, message: true });
+};
+
+export const getComputers = async (req, res) => {
+  let query = getQueryForGeneralFilters(req);
+
+  const limit = getLimit(req);
+
+  const startIndex = getStartIndex(req);
+
+  const order = getOrder(req);
+
+  const sort = getSort(req);
+
+  //* get the brand
+  const brand =
+    req.query.brand && req.query.brand.trim() !== ""
+      ? req.query.brand.trim()
+      : allBrands;
+  if (brand !== allBrands) {
+    query.brand = brand;
+  }
+
+  //* get the query for the storage. example:['mb512','gb1']
+  //* method 1
+  //* const storage = getQueryFromObjects(req.query.storage);
+  //* method 2 // we send the query from th front-end,example:['mb512','gb1'],
+
+  const storage = getQueryFromObjectsValue(req.query.storage);
+  if (storage.length !== 0) {
+    query.storage = { $in: storage };
+  }
+
+  const RAM = getQueryFromObjectsValue(req.query.RAM);
+  if (RAM.length !== 0) {
+    query.RAM = { $in: RAM };
+  }
+
+  const products = await computerModel
+    .find({ isDeleted: false, ...query })
     .sort({ [order]: sort })
     .limit(limit)
     .skip(startIndex);

@@ -6,6 +6,7 @@ import {
   updateUser,
   deleteUser,
   getUserInfo,
+  updateUserFavorites,
 } from "../Controllers/userController.js";
 
 import { validateToken } from "../Middleware/validateToken.js";
@@ -19,10 +20,11 @@ const Router = express.Router();
 Router.post("/signup", signupUser);
 Router.post("/signin", signinUser);
 Router.post("/google", google);
-Router.delete("/delete/:id", validateToken, deleteUser);
-Router.get("/userInfo/:id", validateToken, getUserInfo);
 
 //private route
+Router.get("/userInfo/:id", validateToken, getUserInfo);
+Router.delete("/delete/:id", validateToken, deleteUser);
 Router.put("/update/:id", validateToken, updateUser);
+Router.put("/update/:id/favorites", validateToken, updateUserFavorites);
 
 export default Router;

@@ -11,13 +11,16 @@ export const signupUser = asyncHandler(async (req, res, next) => {
     throw new Error("Please provide credentials");
   }
 
-  const userEmailAvailable = await userModel.findOne({ email });
+  const [userEmailAvailable, usernameAvailable] = await Promise.all([
+    userModel.findOne({ email }),
+    userModel.findOne({ username }),
+  ]);
+
   if (userEmailAvailable) {
     res.status(400);
     throw new Error("Email already in used");
   }
 
-  const usernameAvailable = await userModel.findOne({ username });
   if (usernameAvailable) {
     res.status(400);
     throw new Error("Username is not available");
@@ -36,6 +39,7 @@ export const signupUser = asyncHandler(async (req, res, next) => {
     id: user.id,
   });
 });
+
 // login to an account
 export const signinUser = asyncHandler(async (req, res, next) => {
   const { email, password } = req.body;
@@ -52,30 +56,14 @@ export const signinUser = asyncHandler(async (req, res, next) => {
         user: {
           id: user.id,
           username: user.username,
-          avatar: user.avatar, // we can send payload like this or like second way
+          avatar: user.avatar,
+          role: user.role,
         },
-        // id: user.id,
-        // username: user.username,
       },
       process.env.SECRET_KEY
       // { expiresIn: "100m" }
     );
 
-    // we have two ways to send the access token:
-    // 1: using cookies
-
-    // res
-    //   .cookie("accessToken", accessToken, {
-    //     httpOnly: true,
-    //   })
-    //   .status(200)
-    //   .json({
-    //     id: user.id,
-    //     username: user.username,
-    //     avatar: user.avatar,
-    //   });
-
-    // 2: just sending the access token in json format
     res.status(200).json({
       accessToken,
       id: user.id,
@@ -83,15 +71,16 @@ export const signinUser = asyncHandler(async (req, res, next) => {
       avatar: user.avatar,
       favorites: user.favorites,
       mobileNumber: user.mobileNumber,
+      role: user.role,
     });
   } else {
-    res.status(401); // UNAUTHORIZED
+    res.status(401);
     throw new Error("Email or Password is wrong");
   }
 });
+
 // login with google account
 export const google = asyncHandler(async (req, res, next) => {
-  console.log(req.body);
   // first we check that if the use exist in the database
   // if exist, then we  send and access token with cookie
   // and if the use not exist, first we need to generate
@@ -107,18 +96,11 @@ export const google = asyncHandler(async (req, res, next) => {
           id: user.id,
           username: user.username,
           avatar: user.avatar,
+          role: user.role,
         },
       },
       process.env.SECRET_KEY
     );
-    // res
-    //   .cookie("accessToken", accessToken, { httpOnly: true })
-    //   .status(200)
-    //   .json({
-    //     id: user.id,
-    //     username: user.username,
-    //     avatar: user.avatar,
-    //   });
     res.status(200).json({
       accessToken,
       id: user.id,
@@ -126,6 +108,7 @@ export const google = asyncHandler(async (req, res, next) => {
       avatar: user.avatar,
       mobileNumber: user.mobileNumber,
       favorites: user.favorites,
+      role: user.role,
     });
   } else {
     // beacause the user not exist, first we create a random password and then we hash the password
@@ -158,18 +141,11 @@ export const google = asyncHandler(async (req, res, next) => {
           id: user.id,
           username: user.username,
           avatar: user.avatar,
+          role: user.role,
         },
       },
       process.env.SECRET_KEY
     );
-    // res
-    //   .cookie("accessToken", accessToken, { httpOnly: true })
-    //   .status(200)
-    //   .json({
-    //     id: user.id,
-    //     username: user.username,
-    //     avatar: user.avatar,
-    //   });
     res.status(200).json({
       accessToken,
       id: user.id,
@@ -177,80 +153,118 @@ export const google = asyncHandler(async (req, res, next) => {
       avatar: user.avatar,
       mobileNumber: user.mobileNumber,
       favorites: user.favorites,
+      role: user.role,
     });
   }
 });
 
-// update user information
-export const updateUser = asyncHandler(async (req, res, next) => {
-  if (!req.user) {
-    res.status(401);
-    throw new Error("User is not Authorized");
-  }
-  const user = await userModel.findOne({ _id: req.params.id });
-  if (!user) {
-    res.status(404);
-    throw new Error("User not found");
-  }
+export const updateUser = async (req, res) => {
+  try {
+    if (!req.user) {
+      return res
+        .status(401)
+        .json({ success: false, message: "User is not authorized" });
+    }
 
-  // hash the updated password if the user change the password
-  if (req.body.password) {
-    req.body.password = await bcrypt.hash(req.body.password, 10);
-  }
-  let updatedUser;
-  if (req.body.removeFavorites) {
-    const updatedFavorites = user.favorites.filter(
-      (item) => item != req.body.favorites
-    );
-    updatedUser = await userModel.findByIdAndUpdate(
+    const user = await userModel.findById(req.params.id);
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    }
+
+    const { username, email, avatar, mobileNumber, password } = req.body;
+
+    // Prepare fields to update
+    const updateFields = {};
+    if (username) updateFields.username = username;
+    if (email) updateFields.email = email;
+    if (avatar !== undefined) updateFields.avatar = avatar;
+    if (mobileNumber !== undefined) updateFields.mobileNumber = mobileNumber;
+    if (password) updateFields.password = await bcrypt.hash(password, 10);
+
+    const updatedUser = await userModel.findByIdAndUpdate(
       req.params.id,
-      {
-        $set: {
-          username: req.body.username,
-          email: req.body.email,
-          password: req.body.password,
-          avatar: req.body.avatar,
-          mobileNumber: req.body.mobileNumber,
-          favorites: updatedFavorites,
-        },
-      },
-      {
-        new: true,
-      }
+      { $set: updateFields },
+      { new: true }
     );
-  } else {
-    updatedUser = await userModel.findByIdAndUpdate(
+
+    if (!updatedUser) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User update failed" });
+    }
+
+    res.status(200).json({
+      success: true,
+      id: updatedUser.id,
+      username: updatedUser.username,
+      email: updatedUser.email,
+      avatar: updatedUser.avatar,
+      mobileNumber: updatedUser.mobileNumber,
+    });
+  } catch (error) {
+    // Handle unique index errors for username or email
+    if (error.code === 11000) {
+      console.log(error);
+      const field = Object.keys(error.keyPattern)[0];
+      return res
+        .status(400)
+        .json({ success: false, message: `${field} is already taken` });
+    }
+
+    // Fallback for other errors
+    console.error(error);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+export const updateUserFavorites = async (req, res) => {
+  try {
+    if (!req.user) {
+      console.log("not authenticated");
+      return res
+        .status(401)
+        .json({ success: false, message: "User is not authorized" });
+    }
+
+    const user = await userModel.findById(req.params.id);
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    }
+
+    let updateQuery = {};
+
+    if (req.body.removeFavorites) {
+      updateQuery = { $pull: { favorites: req.body.favorites } };
+    } else {
+      updateQuery = { $addToSet: { favorites: req.body.favorites } };
+    }
+
+    const updatedUser = await userModel.findByIdAndUpdate(
       req.params.id,
-      {
-        $addToSet: {
-          favorites: req.body.favorites,
-        },
-        $set: {
-          username: req.body.username,
-          email: req.body.email,
-          password: req.body.password,
-          avatar: req.body.avatar,
-          mobileNumber: req.body.mobileNumber,
-        },
-      },
-      {
-        new: true,
-      }
+      updateQuery,
+      { new: true, runValidators: true }
     );
-  }
 
-  if (!updatedUser) {
-    res.status(401);
-    throw new Error("User data is not valid");
-  }
+    if (!updatedUser) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Updating favorites failed" });
+    }
 
-  res.status(200).json({
-    id: updatedUser.id,
-    username: updatedUser.username,
-    avatar: updatedUser.avatar,
-    favorites: updatedUser.favorites,
-  });
-});
+    res.status(200).json({
+      success: true,
+      id: updatedUser.id,
+      favorites: updatedUser.favorites,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
 
 // delete user account
 export const deleteUser = asyncHandler(async (req, res, next) => {
@@ -258,7 +272,6 @@ export const deleteUser = asyncHandler(async (req, res, next) => {
     res.status(401);
     throw new Error("User is not Authorized");
   }
-
   const user = await userModel.findOne({ _id: req.params.id });
   if (!user) {
     res.status(404);

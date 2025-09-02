@@ -5,16 +5,21 @@ const userSchema = mongoose.Schema(
     username: {
       type: String,
       required: [true, "Please provide username"],
-      unique: [true, "this username is not available"],
+      trim: true,
     },
     email: {
       type: String,
       required: [true, "Please provide email"],
-      unique: [true, "Email is already in used"],
+      lowercase: true,
+      trim: true,
     },
     password: {
       type: String,
       required: [true, "Please Provide Password"],
+    },
+    role: {
+      type: String,
+      default: "User",
     },
     avatar: {
       type: String,
@@ -27,11 +32,16 @@ const userSchema = mongoose.Schema(
     favorites: {
       type: [mongoose.Schema.Types.ObjectId],
       ref: "Listing",
+      default: [],
     },
   },
   {
     timestamps: true,
   }
 );
+
+// Explicit indexes to enforce uniqueness at the DB level
+userSchema.index({ username: 1 }, { unique: true });
+userSchema.index({ email: 1 }, { unique: true });
 
 export const userModel = mongoose.model("User", userSchema);

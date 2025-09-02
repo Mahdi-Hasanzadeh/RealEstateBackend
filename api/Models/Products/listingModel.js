@@ -20,7 +20,6 @@ const listingSchema = mongoose.Schema(
     },
     discountPrice: {
       type: Number,
-      // required: [true, "Please provide discount Price"],
       default: null,
     },
     bedrooms: {
@@ -64,10 +63,16 @@ const listingSchema = mongoose.Schema(
       type: mongoose.Schema.Types.String,
       required: [true, "Pleas provide main category name"],
     },
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,
   }
 );
+
+listingSchema.index({ isDeleted: 1, userRef: 1 });
 
 export const listingModel = mongoose.model("Listing", listingSchema);

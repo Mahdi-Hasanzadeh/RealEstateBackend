@@ -9,6 +9,8 @@ import {
   getListingsById,
   getCellPhoneById,
   updateCellPhoneById,
+  getComputerById,
+  updateComputerById,
 } from "../Controllers/listingController.js";
 import { validateToken } from "../Middleware/validateToken.js";
 const Router = express.Router();
@@ -26,5 +28,7 @@ Router.get("/userListing/:id", validateToken, getListingById);
 Router.put("/:id", validateToken, updateListingById);
 Router.get("/cellPhone/:cellPhoneId", validateToken, getCellPhoneById);
 Router.put("/cellPhone/:id", validateToken, updateCellPhoneById);
+Router.get("/computer/:computerId", validateToken, getComputerById);
+Router.put("/computer/:id", validateToken, updateComputerById);
 
 export default Router;

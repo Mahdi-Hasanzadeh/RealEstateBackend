@@ -1,5 +1,4 @@
 import asyncHandler from "express-async-handler";
-import { mainCategoryModel } from "../../Models/Category/MainCategory.js";
 import { subCategoryModel } from "../../Models/Category/SubCategory.js";
 import {
   isMainCategoryExist,
@@ -26,8 +25,6 @@ export const createSubCategory = asyncHandler(async (req, res, next) => {
     res.status(400);
     throw new Error("Sub category already exist");
   }
-
-  console.log(mainCategory);
 
   const newSubCategory = await subCategoryModel.create({
     name: subCategoryName,

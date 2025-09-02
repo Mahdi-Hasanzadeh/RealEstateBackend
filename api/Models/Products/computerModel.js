@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const cellPhoneAndTabletsSchema = mongoose.Schema(
+const computerSchema = mongoose.Schema(
   {
     name: {
       type: String,
@@ -38,10 +38,6 @@ const cellPhoneAndTabletsSchema = mongoose.Schema(
       type: String,
       required: [true, "Please provide RAM"],
     },
-    color: {
-      type: String,
-      required: [true, "Please provide color"],
-    },
     imageURLs: {
       type: Array,
       required: [true, "Please provide at least one image"],
@@ -77,9 +73,6 @@ const cellPhoneAndTabletsSchema = mongoose.Schema(
   }
 );
 
-cellPhoneAndTabletsSchema.index({ isDeleted: 1, userRef: 1 });
+computerSchema.index({ isDeleted: 1, userRef: 1 });
 
-export const cellPhoneAndTabletsModel = mongoose.model(
-  "cellPhone_Tablets",
-  cellPhoneAndTabletsSchema
-);
+export const computerModel = mongoose.model("computer", computerSchema);
