@@ -34,6 +34,12 @@ const userSchema = mongoose.Schema(
       ref: "Listing",
       default: [],
     },
+    emailVerified: {
+      type: Boolean,
+      default: false,
+    },
+    emailVerificationToken: String,
+    emailVerificationTokenExpires: Date,
   },
   {
     timestamps: true,

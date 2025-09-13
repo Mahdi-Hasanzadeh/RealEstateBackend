@@ -23,6 +23,7 @@ import { ListingDeletionModel } from "../Models/Deletions/ListingsDeletions.js";
 import { mainCategoryModel } from "../Models/Category/MainCategory.js";
 import { subCategoryModel } from "../Models/Category/SubCategory.js";
 import { computerModel } from "../Models/Products/computerModel.js";
+import { userModel } from "../Models/User/userModel.js";
 
 // create a new listing
 export const createListing = async (req, res, next) => {
@@ -34,6 +35,12 @@ export const createListing = async (req, res, next) => {
         message: "User is not authorized",
       });
       return;
+    }
+    var user = await userModel.findById(req.user.id);
+    if (!user.emailVerified) {
+      return res
+        .status(400)
+        .json({ succeess: false, message: "Please verify your email" });
     }
 
     //* check that the main category exist or not

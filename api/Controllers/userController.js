@@ -2,6 +2,7 @@ import asyncHandler from "express-async-handler";
 import bcrypt from "bcrypt";
 import { userModel } from "../Models/User/userModel.js";
 import jwt from "jsonwebtoken";
+import { agenda } from "../Utility/agenda.js";
 
 // create new user
 export const signupUser = asyncHandler(async (req, res, next) => {
@@ -28,10 +29,22 @@ export const signupUser = asyncHandler(async (req, res, next) => {
 
   const hashedPassword = await bcrypt.hash(password, 10);
 
+  const emailVerificationToken = generateVerificationToken();
+  const emailVerificationTokenExpires = Date.now() + 3600 * 1000; // 1 hour expiration
+
   const user = await userModel.create({
     username,
     email,
     password: hashedPassword,
+    emailVerificationToken,
+    emailVerificationTokenExpires,
+  });
+
+  // 🔹 Add job to Agenda to send verification email
+  agenda.now("send verification email", {
+    to: user.email,
+    username: user.username,
+    token: emailVerificationToken,
   });
 
   res.status(201).json({
@@ -72,6 +85,7 @@ export const signinUser = asyncHandler(async (req, res, next) => {
       favorites: user.favorites,
       mobileNumber: user.mobileNumber,
       role: user.role,
+      emailVerified: user.emailVerified,
     });
   } else {
     res.status(401);
@@ -90,6 +104,8 @@ export const google = asyncHandler(async (req, res, next) => {
   // an access token and cookie to the front-end
   const user = await userModel.findOne({ email: req.body.email });
   if (user) {
+    user.emailVerified = true;
+    await user.save();
     const accessToken = jwt.sign(
       {
         user: {
@@ -109,6 +125,7 @@ export const google = asyncHandler(async (req, res, next) => {
       mobileNumber: user.mobileNumber,
       favorites: user.favorites,
       role: user.role,
+      emailVerified: user.emailVerified,
     });
   } else {
     // beacause the user not exist, first we create a random password and then we hash the password
@@ -130,6 +147,7 @@ export const google = asyncHandler(async (req, res, next) => {
       email: req.body.email,
       password: hashedPassword,
       avatar: req.body.avatar,
+      emailVerified: true,
     });
     if (!user) {
       res.status(400);
@@ -154,6 +172,7 @@ export const google = asyncHandler(async (req, res, next) => {
       mobileNumber: user.mobileNumber,
       favorites: user.favorites,
       role: user.role,
+      emailVerified: user.emailVerified,
     });
   }
 });
@@ -301,3 +320,96 @@ export const getUserInfo = asyncHandler(async (req, res, next) => {
   const { username, email, mobileNumber, favorites } = user;
   res.status(200).json({ username, email, mobileNumber, favorites });
 });
+
+export const verifyEmail = async (req, res, next) => {
+  const { token } = req.query;
+
+  if (!token) {
+    return res.status(400).json({ message: "Verification token is required" });
+  }
+
+  // Find user with this token and check expiration
+  const user = await userModel.findOne({
+    emailVerificationToken: token,
+    emailVerificationTokenExpires: { $gt: Date.now() },
+  });
+
+  if (!user) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid or expired verification token",
+    });
+  }
+
+  // Mark email as verified
+  user.emailVerified = true;
+  user.emailVerificationToken = undefined;
+  user.emailVerificationTokenExpires = undefined;
+
+  await user.save();
+
+  res
+    .status(200)
+    .json({ success: true, message: "Email verified successfully!" });
+};
+
+const generateVerificationToken = (length = 6) => {
+  const min = Math.pow(10, length - 1);
+  const max = Math.pow(10, length) - 1;
+  return String(Math.floor(Math.random() * (max - min + 1) + min));
+};
+
+export const sendVerificationCode = async (req, res, next) => {
+  try {
+    if (!req.user) {
+      return res
+        .status(401)
+        .json({ success: false, message: "User is not authorized" });
+    }
+
+    const userId = req.user.id;
+    const user = await userModel.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Already verified
+    if (user.emailVerified) {
+      return res
+        .status(200)
+        .json({ message: "Your account is already verified" });
+    }
+
+    // Token not expired yet
+    if (
+      user.emailVerificationToken &&
+      user.emailVerificationTokenExpires > Date.now()
+    ) {
+      return res.status(200).json({
+        message:
+          "We have already sent you a verification token. Please check your email.",
+      });
+    }
+
+    // Generate new token
+    const emailVerificationToken = generateVerificationToken();
+    const emailVerificationTokenExpires = Date.now() + 3600 * 1000; // 1 hour
+
+    user.emailVerificationToken = emailVerificationToken;
+    user.emailVerificationTokenExpires = emailVerificationTokenExpires;
+    await user.save();
+
+    // Schedule Agenda job
+    await agenda.now("send verification email", {
+      to: user.email,
+      username: user.username,
+      token: emailVerificationToken,
+    });
+
+    res.status(200).json({
+      message: "Verification email scheduled successfully!",
+    });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
