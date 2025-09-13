@@ -12,6 +12,25 @@ import {
   getStartIndex,
 } from "./functions.js";
 
+// set name and price in the query object
+export const getQueryForGeneralFilters = (req) => {
+  let query = {};
+
+  const searchTerm = getSearchTerm(req);
+
+  const priceQuery = getPriceQuery(req);
+
+  query = {
+    name: { $regex: searchTerm, $options: "i" },
+  };
+
+  if (Object.keys(priceQuery).length !== 0) {
+    // Match either regularPrice OR discountPrice
+    query.$or = [{ regularPrice: priceQuery }, { discountPrice: priceQuery }];
+  }
+  return query;
+};
+
 export const getEstateProducts = async (req, res) => {
   // queries:  1: searchTerm, 2:type, 3:parking. 4:furnished 5: offer,
   // 6: sort 7: order 8: limit
@@ -54,7 +73,7 @@ export const getEstateProducts = async (req, res) => {
 
   try {
     const listings = await listingModel
-      .find({ isDeleted: false, ...query })
+      .find({ isDeleted: false, isApproved: true, ...query })
       .sort({ [order]: sort })
       .limit(limit)
       .skip(startIndex);
@@ -66,25 +85,6 @@ export const getEstateProducts = async (req, res) => {
       message: error.message,
     });
   }
-};
-
-// set name and price in the query object
-export const getQueryForGeneralFilters = (req) => {
-  let query = {};
-
-  const searchTerm = getSearchTerm(req);
-
-  const priceQuery = getPriceQuery(req);
-
-  query = {
-    name: { $regex: searchTerm, $options: "i" },
-  };
-
-  if (Object.keys(priceQuery).length !== 0) {
-    // Match either regularPrice OR discountPrice
-    query.$or = [{ regularPrice: priceQuery }, { discountPrice: priceQuery }];
-  }
-  return query;
 };
 
 export const getCellPhoneAndTablets = async (req, res) => {
@@ -128,7 +128,7 @@ export const getCellPhoneAndTablets = async (req, res) => {
   }
 
   const products = await cellPhoneAndTabletsModel
-    .find({ isDeleted: false, ...query })
+    .find({ isDeleted: false, isApproved: true, ...query })
     .sort({ [order]: sort })
     .limit(limit)
     .skip(startIndex);
@@ -171,7 +171,7 @@ export const getComputers = async (req, res) => {
   }
 
   const products = await computerModel
-    .find({ isDeleted: false, ...query })
+    .find({ isDeleted: false, isApproved: true, ...query })
     .sort({ [order]: sort })
     .limit(limit)
     .skip(startIndex);

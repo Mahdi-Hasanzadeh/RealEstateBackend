@@ -54,10 +54,12 @@ const cellPhoneAndTabletsSchema = mongoose.Schema(
     mainCategoryId: {
       type: mongoose.Schema.Types.ObjectId,
       required: [true, "Please provide main category Id"],
+      ref: "MainCategory",
     },
     subCategoryId: {
       type: mongoose.Schema.Types.ObjectId,
       required: [true, "Please provide sub category Id"],
+      ref: "SubCategory",
     },
     mainCategoryName: {
       type: mongoose.Schema.Types.String,
@@ -70,6 +72,15 @@ const cellPhoneAndTabletsSchema = mongoose.Schema(
     isDeleted: {
       type: Boolean,
       default: false,
+    },
+    isApproved: {
+      type: Boolean,
+      default: false,
+    },
+    isRejected: { type: Boolean, default: false },
+    RejectedReason: {
+      type: String,
+      default: null,
     },
   },
   {

@@ -2,6 +2,12 @@ import { ListingDeletionModel } from "../../Models/Deletions/ListingsDeletions.j
 import { cellPhoneAndTabletsModel } from "../../Models/Products/cellPhoneAndTabletsModel.js";
 import { computerModel } from "../../Models/Products/computerModel.js";
 import { listingModel } from "../../Models/Products/listingModel.js";
+import {
+  cellPhoneAndTablets,
+  computer,
+  digitalEquipment,
+  estate,
+} from "../../Utility/constants.js";
 
 // ---- Helper: last 6 months ----
 function getLast6Months() {
@@ -199,5 +205,444 @@ export const getDashboardInfo = async (req, res) => {
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Server Error" });
+  }
+};
+
+export const getListingsStats = async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    if (req.user.role !== "Admin") {
+      return res
+        .status(403)
+        .json({ success: false, message: "Restricted Access" });
+    }
+
+    // Approved
+    const approvedListings = await listingModel.countDocuments({
+      isApproved: true,
+    });
+    const approvedCell = await cellPhoneAndTabletsModel.countDocuments({
+      isApproved: true,
+    });
+    const approvedComputers = await computerModel.countDocuments({
+      isApproved: true,
+    });
+    const totalApproved = approvedListings + approvedCell + approvedComputers;
+
+    // Rejected
+    const rejectedListings = await listingModel.countDocuments({
+      isRejected: true,
+    });
+    const rejectedCell = await cellPhoneAndTabletsModel.countDocuments({
+      isRejected: true,
+    });
+    const rejectedComputers = await computerModel.countDocuments({
+      isRejected: true,
+    });
+    const totalRejected = rejectedListings + rejectedCell + rejectedComputers;
+
+    // Pending
+    const pendingListings = await listingModel.countDocuments({
+      isApproved: false,
+      isRejected: false,
+      isDeleted: false,
+    });
+    const pendingCell = await cellPhoneAndTabletsModel.countDocuments({
+      isApproved: false,
+      isRejected: false,
+      isDeleted: false,
+    });
+    const pendingComputers = await computerModel.countDocuments({
+      isApproved: false,
+      isRejected: false,
+      isDeleted: false,
+    });
+    const totalPending = pendingListings + pendingCell + pendingComputers;
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        approved: totalApproved,
+        rejected: totalRejected,
+        pending: totalPending,
+      },
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+//Returns paginated pending listings from all three models
+export const getPendingListings = async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    if (req.user.role !== "Admin") {
+      return res
+        .status(403)
+        .json({ success: false, message: "Restricted Access" });
+    }
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 5;
+    const skip = (page - 1) * limit;
+
+    const filter = { isDeleted: false, isApproved: false, isRejected: false };
+
+    // Fetch all pending items from all models
+    const [listings, cellPhones, computers] = await Promise.all([
+      listingModel.find(filter),
+      cellPhoneAndTabletsModel.find(filter),
+      computerModel.find(filter),
+    ]);
+
+    // Combine and sort by creation date descending
+    const allItems = [...listings, ...cellPhones, ...computers].sort(
+      (a, b) => new Date(a.createdAt) - new Date(b.createdAt)
+    );
+
+    const totalItems = allItems.length;
+    const totalPages = Math.ceil(totalItems / limit);
+
+    // Slice according to page & limit
+    const items = allItems.slice(skip, skip + limit);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        items,
+        totalPages,
+        currentPage: page,
+        totalItems,
+      },
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+// Returns paginated approved listings from all three models
+export const getApprovedListings = async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    if (req.user.role !== "Admin") {
+      return res
+        .status(403)
+        .json({ success: false, message: "Restricted Access" });
+    }
+
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 5;
+    const skip = (page - 1) * limit;
+
+    const filter = { isDeleted: false, isApproved: true };
+
+    const [listings, cellPhones, computers] = await Promise.all([
+      listingModel.find(filter),
+      cellPhoneAndTabletsModel.find(filter),
+      computerModel.find(filter),
+    ]);
+
+    const allItems = [...listings, ...cellPhones, ...computers].sort(
+      (a, b) => new Date(b.createdAt) - new Date(a.createdAt) // newest first
+    );
+
+    const totalItems = allItems.length;
+    const totalPages = Math.ceil(totalItems / limit);
+    const items = allItems.slice(skip, skip + limit);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        items,
+        totalPages,
+        currentPage: page,
+        totalItems,
+      },
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+// Returns paginated rejected listings from all three models
+export const getRejectedListings = async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    if (req.user.role !== "Admin") {
+      return res
+        .status(403)
+        .json({ success: false, message: "Restricted Access" });
+    }
+
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 5;
+    const skip = (page - 1) * limit;
+
+    const filter = { isDeleted: false, isRejected: true };
+
+    const [listings, cellPhones, computers] = await Promise.all([
+      listingModel.find(filter),
+      cellPhoneAndTabletsModel.find(filter),
+      computerModel.find(filter),
+    ]);
+
+    const allItems = [...listings, ...cellPhones, ...computers].sort(
+      (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+    );
+
+    const totalItems = allItems.length;
+    const totalPages = Math.ceil(totalItems / limit);
+    const items = allItems.slice(skip, skip + limit);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        items,
+        totalPages,
+        currentPage: page,
+        totalItems,
+      },
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+// Get a single listing to be checked by admin for approval
+export const getListingByIdForApproval = async (req, res, next) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    if (req.user.role !== "Admin") {
+      return res
+        .status(403)
+        .json({ success: false, message: "Restricted Access" });
+    }
+    const params = req.params.id.split(",");
+    const id = params[0];
+    const mainCategory = params[1]?.toLowerCase();
+    const subCategory = params[2]?.toLowerCase();
+
+    let product = null;
+    switch (mainCategory) {
+      case estate: {
+        product = await listingModel.findOne({
+          _id: id,
+          isDeleted: false,
+        });
+        break;
+      }
+      case digitalEquipment.toLowerCase(): {
+        switch (subCategory) {
+          case cellPhoneAndTablets: {
+            product = await cellPhoneAndTabletsModel.findOne({
+              _id: id,
+              isDeleted: false,
+            });
+
+            break;
+          }
+          case computer: {
+            product = await computerModel.findOne({
+              _id: id,
+              isDeleted: false,
+            });
+            break;
+          }
+        }
+        break;
+      }
+    }
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Listing Not Found",
+      });
+    }
+
+    return res.status(200).json(product);
+  } catch (error) {
+    return res.status(404).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// approve listings by admin
+export const approveListing = async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    if (req.user.role !== "Admin") {
+      return res
+        .status(403)
+        .json({ success: false, message: "Restricted Access" });
+    }
+
+    const { id, mainCategory, subCategory } = req.query;
+
+    if (!id || !mainCategory) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Missing required parameters" });
+    }
+
+    let product = null;
+
+    switch (mainCategory) {
+      case estate: {
+        product = await listingModel.findOneAndUpdate(
+          { _id: id, isDeleted: false },
+          { isApproved: true, isRejected: false, RejectedReason: "" },
+          { new: true }
+        );
+        break;
+      }
+      case digitalEquipment: {
+        switch (subCategory) {
+          case cellPhoneAndTablets: {
+            product = await cellPhoneAndTabletsModel.findOneAndUpdate(
+              { _id: id, isDeleted: false },
+              { isApproved: true, isRejected: false, RejectedReason: "" },
+              { new: true }
+            );
+            break;
+          }
+          case computer: {
+            product = await computerModel.findOneAndUpdate(
+              { _id: id, isDeleted: false },
+              { isApproved: true, isRejected: false, RejectedReason: "" },
+              { new: true }
+            );
+            break;
+          }
+        }
+        break;
+      }
+    }
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Listing Not Found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Listing approved successfully",
+      data: product,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      success: false,
+      message: "Server Error",
+    });
+  }
+};
+
+// reject listings by admin
+export const rejectListing = async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    if (req.user.role !== "Admin") {
+      return res
+        .status(403)
+        .json({ success: false, message: "Restricted Access" });
+    }
+
+    const { id, mainCategory, subCategory } = req.query;
+
+    const { reason } = req.body;
+
+    if (!id || !mainCategory) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Missing required parameters" });
+    }
+
+    if (!reason) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Rejection reason is required" });
+    }
+
+    let product = null;
+
+    switch (mainCategory) {
+      case estate: {
+        product = await listingModel.findOneAndUpdate(
+          { _id: id, isDeleted: false },
+          { isApproved: false, isRejected: true, RejectedReason: reason },
+          { new: true }
+        );
+        break;
+      }
+      case digitalEquipment: {
+        switch (subCategory) {
+          case cellPhoneAndTablets: {
+            product = await cellPhoneAndTabletsModel.findOneAndUpdate(
+              { _id: id, isDeleted: false },
+              { isApproved: false, isRejected: true, RejectedReason: reason },
+              { new: true }
+            );
+            break;
+          }
+          case computer: {
+            product = await computerModel.findOneAndUpdate(
+              { _id: id, isDeleted: false },
+              { isApproved: false, isRejected: true, RejectedReason: reason },
+              { new: true }
+            );
+            break;
+          }
+        }
+        break;
+      }
+    }
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Listing Not Found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Listing rejected successfully",
+      data: product,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      success: false,
+      message: "Server Error",
+    });
   }
 };

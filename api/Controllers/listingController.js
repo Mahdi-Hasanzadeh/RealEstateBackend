@@ -183,6 +183,7 @@ export const getListingById = async (req, res, next) => {
         product = await listingModel.findOne({
           _id: id,
           isDeleted: false,
+          isApproved: true,
         });
         break;
       }
@@ -192,6 +193,7 @@ export const getListingById = async (req, res, next) => {
             product = await cellPhoneAndTabletsModel.findOne({
               _id: id,
               isDeleted: false,
+              isApproved: true,
             });
 
             break;
@@ -200,6 +202,7 @@ export const getListingById = async (req, res, next) => {
             product = await computerModel.findOne({
               _id: id,
               isDeleted: false,
+              isApproved: true,
             });
             break;
           }
@@ -441,6 +444,7 @@ export const getCellPhoneById = async (req, res, next) => {
     const product = await cellPhoneAndTabletsModel.findOne({
       _id: cellPhoneId,
       isDeleted: false,
+      isApproved: true,
     });
 
     if (!product) {
@@ -525,6 +529,7 @@ export const getComputerById = async (req, res, next) => {
     const product = await computerModel.findOne({
       _id: computerId,
       isDeleted: false,
+      isApproved: true,
     });
 
     if (!product) {

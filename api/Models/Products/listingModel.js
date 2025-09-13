@@ -58,6 +58,7 @@ const listingSchema = mongoose.Schema(
     mainCategoryId: {
       type: mongoose.Schema.Types.ObjectId,
       required: [true, "Please provide main category Id"],
+      ref: "MainCategory",
     },
     mainCategoryName: {
       type: mongoose.Schema.Types.String,
@@ -66,6 +67,15 @@ const listingSchema = mongoose.Schema(
     isDeleted: {
       type: Boolean,
       default: false,
+    },
+    isApproved: {
+      type: Boolean,
+      default: false,
+    },
+    isRejected: { type: Boolean, default: false },
+    RejectedReason: {
+      type: String,
+      default: null,
     },
   },
   {

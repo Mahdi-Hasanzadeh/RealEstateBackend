@@ -9,6 +9,7 @@ const subCategory = mongoose.Schema(
     mainCategoryRef: {
       type: mongoose.Schema.Types.ObjectId,
       required: [true, "Please provide main category reference"],
+      ref: "maincategories",
     },
   },
   {
