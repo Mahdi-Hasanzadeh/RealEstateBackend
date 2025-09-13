@@ -177,6 +177,8 @@ export const getListingById = async (req, res, next) => {
     const mainCategory = params[1]?.toLowerCase();
     const subCategory = params[2]?.toLowerCase();
 
+    console.log(mainCategory);
+
     let product = null;
     switch (mainCategory) {
       case estate: {
@@ -379,6 +381,8 @@ export const updateListingById = async (req, res, next) => {
           type: req.body.type,
           offer: req.body.offer,
           imageURLs: req.body.imageURLs,
+          isApproved: false,
+          isRejected: false,
         },
       },
       {
@@ -432,6 +436,7 @@ export const getListingsById = async (req, res, next) => {
   }
 };
 
+// get CellPhone By Id for Update(No matter which is rejected or approved)
 export const getCellPhoneById = async (req, res, next) => {
   if (!req.user) {
     return res.status(401).json({
@@ -444,7 +449,6 @@ export const getCellPhoneById = async (req, res, next) => {
     const product = await cellPhoneAndTabletsModel.findOne({
       _id: cellPhoneId,
       isDeleted: false,
-      isApproved: true,
     });
 
     if (!product) {
@@ -498,6 +502,8 @@ export const updateCellPhoneById = async (req, res, next) => {
           RAM: req.body.RAM,
           discountPrice: req.body.offer ? req.body.discountPrice : 0,
           offer: req.body.offer,
+          isApproved: false,
+          isRejected: false,
         },
       },
       {
@@ -517,7 +523,9 @@ export const updateCellPhoneById = async (req, res, next) => {
   }
 };
 
+// get Computer By Id for Update(No matter which is rejected or approved))
 export const getComputerById = async (req, res, next) => {
+  console.log("getComputerById");
   if (!req.user) {
     return res.status(401).json({
       success: false,
@@ -529,7 +537,6 @@ export const getComputerById = async (req, res, next) => {
     const product = await computerModel.findOne({
       _id: computerId,
       isDeleted: false,
-      isApproved: true,
     });
 
     if (!product) {
@@ -582,6 +589,8 @@ export const updateComputerById = async (req, res, next) => {
           RAM: req.body.RAM,
           discountPrice: req.body.offer ? req.body.discountPrice : 0,
           offer: req.body.offer,
+          isApproved: false,
+          isRejected: false,
         },
       },
       {
