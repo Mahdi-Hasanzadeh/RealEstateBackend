@@ -3,6 +3,7 @@ import bcrypt from "bcrypt";
 import { userModel } from "../Models/User/userModel.js";
 import jwt from "jsonwebtoken";
 import { agenda } from "../Utility/agenda.js";
+import { NotificationModel } from "../Models/Notification/NotificationModel.js";
 
 // create new user
 export const signupUser = asyncHandler(async (req, res, next) => {
@@ -411,5 +412,55 @@ export const sendVerificationCode = async (req, res, next) => {
     });
   } catch (error) {
     return res.status(500).json({ message: error.message });
+  }
+};
+
+export const getUnreadNotification = async (req, res) => {
+  try {
+    // Check if user is logged in
+    if (!req.user) {
+      return res
+        .status(401)
+        .json({ success: false, message: "User is not authorized" });
+    }
+
+    // Fetch unread notifications for this user
+    const notifications = await NotificationModel.find({
+      userId: req.user.id,
+      isRead: false,
+    }).sort({ createdAt: -1 }); // latest first
+
+    res.status(200).json({ success: true, data: notifications });
+  } catch (error) {
+    console.error(error);
+    res
+      .status(500)
+      .json({ success: false, message: "Server error", error: error.message });
+  }
+};
+
+// DELETE /notifications/:id
+export const deleteNotification = async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    const { id } = req.params;
+
+    // Ensure user owns the notification
+    const notif = await NotificationModel.findOne({
+      _id: id,
+      userId: req.user.id,
+    });
+    if (!notif) {
+      return res.status(200).json({ success: true });
+    }
+
+    await NotificationModel.deleteOne({ _id: id });
+    res.status(200).json({ success: true, message: "Notification deleted" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: error.message });
   }
 };

@@ -8,7 +8,7 @@ export const agenda = new Agenda({
   db: { address: process.env.CONNECTION_STRING },
 });
 
-// Define the job
+// Define the job for sending verification email
 agenda.define("send verification email", async (job) => {
   const { to, username, token } = job.attrs.data;
 

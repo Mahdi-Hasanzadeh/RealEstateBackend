@@ -16,7 +16,7 @@ export const sendEmail = async ({ to, subject, html }) => {
   await transporter.verify();
   console.log("Sending Email");
   await transporter.sendMail({
-    from: `"My App" <${process.env.SMTP_USER}>`,
+    from: `"SmartTrade" <${process.env.SMTP_USER}>`,
     to,
     subject,
     html,

@@ -9,6 +9,8 @@ import {
   updateUserFavorites,
   verifyEmail,
   sendVerificationCode,
+  getUnreadNotification,
+  deleteNotification,
 } from "../Controllers/userController.js";
 
 import { validateToken } from "../Middleware/validateToken.js";
@@ -30,5 +32,7 @@ Router.delete("/delete/:id", validateToken, deleteUser);
 Router.put("/update/:id", validateToken, updateUser);
 Router.put("/update/:id/favorites", validateToken, updateUserFavorites);
 Router.get("/send-verification-code", validateToken, sendVerificationCode);
+Router.get("/notifications/unread", validateToken, getUnreadNotification);
+Router.delete("/notifications/:id", validateToken, deleteNotification);
 
 export default Router;

@@ -1,4 +1,6 @@
+import mongoose from "mongoose";
 import { ListingDeletionModel } from "../../Models/Deletions/ListingsDeletions.js";
+import { NotificationModel } from "../../Models/Notification/NotificationModel.js";
 import { cellPhoneAndTabletsModel } from "../../Models/Products/cellPhoneAndTabletsModel.js";
 import { computerModel } from "../../Models/Products/computerModel.js";
 import { listingModel } from "../../Models/Products/listingModel.js";
@@ -8,6 +10,7 @@ import {
   digitalEquipment,
   estate,
 } from "../../Utility/constants.js";
+import { onlineUsers } from "../../server.js";
 
 // ---- Helper: last 6 months ----
 function getLast6Months() {
@@ -489,65 +492,82 @@ export const getListingByIdForApproval = async (req, res, next) => {
 
 // approve listings by admin
 export const approveListing = async (req, res) => {
-  try {
-    if (!req.user) {
-      return res.status(401).json({ success: false, message: "Unauthorized" });
-    }
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-    if (req.user.role !== "Admin") {
+  try {
+    if (!req.user)
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    if (req.user.role !== "Admin")
       return res
         .status(403)
         .json({ success: false, message: "Restricted Access" });
-    }
 
     const { id, mainCategory, subCategory } = req.query;
-
-    if (!id || !mainCategory) {
+    if (!id || !mainCategory)
       return res
         .status(400)
         .json({ success: false, message: "Missing required parameters" });
-    }
 
     let product = null;
 
     switch (mainCategory) {
-      case estate: {
+      case estate:
         product = await listingModel.findOneAndUpdate(
           { _id: id, isDeleted: false },
           { isApproved: true, isRejected: false, RejectedReason: "" },
-          { new: true }
+          { new: true, session }
         );
         break;
-      }
-      case digitalEquipment: {
+      case digitalEquipment:
         switch (subCategory) {
-          case cellPhoneAndTablets: {
+          case cellPhoneAndTablets:
             product = await cellPhoneAndTabletsModel.findOneAndUpdate(
               { _id: id, isDeleted: false },
               { isApproved: true, isRejected: false, RejectedReason: "" },
-              { new: true }
+              { new: true, session }
             );
             break;
-          }
-          case computer: {
+          case computer:
             product = await computerModel.findOneAndUpdate(
               { _id: id, isDeleted: false },
               { isApproved: true, isRejected: false, RejectedReason: "" },
-              { new: true }
+              { new: true, session }
             );
             break;
-          }
         }
         break;
-      }
     }
 
     if (!product) {
-      return res.status(404).json({
-        success: false,
-        message: "Listing Not Found",
-      });
+      await session.abortTransaction();
+      session.endSession();
+      return res
+        .status(404)
+        .json({ success: false, message: "Listing Not Found" });
     }
+
+    // Create notification in DB
+    const [notification] = await NotificationModel.create(
+      [
+        {
+          userId: product.userRef,
+          title: "Listing Approved ✅",
+          message: `Your listing "${product.name}" has been approved by the admin.`,
+          isRead: false,
+        },
+      ],
+      { session }
+    );
+
+    // Send notification via WebSocket if user is online
+    const socket = onlineUsers.get(product.userRef.toString());
+    if (socket) {
+      socket.emit("notification", notification);
+    }
+
+    await session.commitTransaction();
+    session.endSession();
 
     return res.status(200).json({
       success: true,
@@ -555,16 +575,18 @@ export const approveListing = async (req, res) => {
       data: product,
     });
   } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
     console.error(error);
-    return res.status(500).json({
-      success: false,
-      message: "Server Error",
-    });
+    return res.status(500).json({ success: false, message: "Server Error" });
   }
 };
 
 // reject listings by admin
 export const rejectListing = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
     if (!req.user) {
       return res.status(401).json({ success: false, message: "Unauthorized" });
@@ -577,7 +599,6 @@ export const rejectListing = async (req, res) => {
     }
 
     const { id, mainCategory, subCategory } = req.query;
-
     const { reason } = req.body;
 
     if (!id || !mainCategory) {
@@ -599,7 +620,7 @@ export const rejectListing = async (req, res) => {
         product = await listingModel.findOneAndUpdate(
           { _id: id, isDeleted: false },
           { isApproved: false, isRejected: true, RejectedReason: reason },
-          { new: true }
+          { new: true, session }
         );
         break;
       }
@@ -609,7 +630,7 @@ export const rejectListing = async (req, res) => {
             product = await cellPhoneAndTabletsModel.findOneAndUpdate(
               { _id: id, isDeleted: false },
               { isApproved: false, isRejected: true, RejectedReason: reason },
-              { new: true }
+              { new: true, session }
             );
             break;
           }
@@ -617,7 +638,7 @@ export const rejectListing = async (req, res) => {
             product = await computerModel.findOneAndUpdate(
               { _id: id, isDeleted: false },
               { isApproved: false, isRejected: true, RejectedReason: reason },
-              { new: true }
+              { new: true, session }
             );
             break;
           }
@@ -627,11 +648,35 @@ export const rejectListing = async (req, res) => {
     }
 
     if (!product) {
+      await session.abortTransaction();
+      session.endSession();
       return res.status(404).json({
         success: false,
         message: "Listing Not Found",
       });
     }
+
+    // Create notification in DB
+    const [notification] = await NotificationModel.create(
+      [
+        {
+          userId: product.userRef, // match approveListing
+          title: "Listing Rejected ❌",
+          message: `Your listing "${product.name}" has been rejected by the admin. Note: Check Your Listings page in app for more info`,
+          isRead: false,
+        },
+      ],
+      { session }
+    );
+
+    // Send notification via WebSocket if user is online
+    const socket = onlineUsers.get(product.userRef.toString());
+    if (socket) {
+      socket.emit("notification", notification);
+    }
+
+    await session.commitTransaction();
+    session.endSession();
 
     return res.status(200).json({
       success: true,
@@ -639,6 +684,8 @@ export const rejectListing = async (req, res) => {
       data: product,
     });
   } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
     console.error(error);
     return res.status(500).json({
       success: false,
