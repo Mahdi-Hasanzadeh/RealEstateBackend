@@ -22,8 +22,8 @@ const userSchema = mongoose.Schema(
       default: "User",
     },
     avatar: {
-      type: String,
-      default: "",
+      type: Object,
+      default: {},
     },
     mobileNumber: {
       type: String,

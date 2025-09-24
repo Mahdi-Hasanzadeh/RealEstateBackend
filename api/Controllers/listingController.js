@@ -24,6 +24,8 @@ import { mainCategoryModel } from "../Models/Category/MainCategory.js";
 import { subCategoryModel } from "../Models/Category/SubCategory.js";
 import { computerModel } from "../Models/Products/computerModel.js";
 import { userModel } from "../Models/User/userModel.js";
+import mongoose from "mongoose";
+import { agenda } from "../Utility/agenda.js";
 
 // create a new listing
 export const createListing = async (req, res, next) => {
@@ -184,8 +186,6 @@ export const getListingById = async (req, res, next) => {
     const mainCategory = params[1]?.toLowerCase();
     const subCategory = params[2]?.toLowerCase();
 
-    console.log(mainCategory);
-
     let product = null;
     switch (mainCategory) {
       case estate: {
@@ -303,6 +303,12 @@ export const deleteListingById = async (req, res, next) => {
         });
     }
 
+    const images = listing.imageURLs;
+
+    for (const image of images) {
+      await agenda.now("delete cloudinary image", { publicId: image.publicId });
+    }
+
     // Record the deletion in audit collection
     await ListingDeletionModel.create({
       productId: listing._id,
@@ -353,60 +359,84 @@ export const getListingsWithQuery = async (req, res, next) => {
   }
 };
 
-//update listings by id
+//update listings by id(Estate)
 export const updateListingById = async (req, res, next) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
-    const listing = await listingModel.findById(req.params.id);
+    const listing = await listingModel.findById(req.params.id).session(session);
 
     if (!listing) {
-      return res.status(404).json({
-        success: false,
-        message: "Listing Not Found",
-      });
+      await session.abortTransaction();
+      return res
+        .status(404)
+        .json({ success: false, message: "Listing Not Found" });
     }
 
     if (listing.userRef != req.body.userRef) {
+      await session.abortTransaction();
       return res.status(401).json({
-        succeess: false,
-        message: "Your are not allowed to update another user's listing",
+        success: false,
+        message: "You are not allowed to update another user's listing",
       });
     }
 
-    const updatedListing = await listingModel.findByIdAndUpdate(
-      req.params.id,
-      {
-        $set: {
-          name: req.body.name,
-          description: req.body.description,
-          address: req.body.address,
-          regularPrice: req.body.regularPrice,
-          discountPrice: req.body.discountPrice,
-          bedrooms: req.body.bedrooms,
-          bath: req.body.bath,
-          furnished: req.body.furnished,
-          parking: req.body.parking,
-          type: req.body.type,
-          offer: req.body.offer,
-          imageURLs: req.body.imageURLs,
-          isApproved: false,
-          isRejected: false,
-        },
-      },
-      {
-        new: true,
-      }
-    );
+    const {
+      name,
+      description,
+      address,
+      regularPrice,
+      discountPrice,
+      bedrooms,
+      bath,
+      furnished,
+      parking,
+      type,
+      offer,
+      imageURLs,
+      deletedOriginals,
+    } = req.body;
 
-    return res.status(201).json({
-      succeess: true,
-      updatedListing,
+    // Update listing
+    listing.set({
+      name,
+      description,
+      address,
+      regularPrice,
+      discountPrice,
+      bedrooms,
+      bath,
+      furnished,
+      parking,
+      type,
+      offer,
+      imageURLs,
+      isApproved: false,
+      isRejected: false,
+    });
+
+    await listing.save({ session });
+
+    // Schedule deletion of originals asynchronously via Agenda
+    if (deletedOriginals.length > 0) {
+      for (const img of deletedOriginals) {
+        await agenda.now("delete cloudinary image", { publicId: img.publicId });
+      }
+    }
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.status(200).json({
+      success: true,
+      updatedListing: listing,
     });
   } catch (error) {
-    console.log(error);
-    return res.status(404).json({
-      success: false,
-      message: error.message,
-    });
+    await session.abortTransaction();
+    session.endSession();
+    console.error(error);
+    return res.status(500).json({ success: false, message: error.message });
   }
 };
 
@@ -477,10 +507,15 @@ export const updateCellPhoneById = async (req, res, next) => {
     });
   }
   const currentUser = req.user.id;
+  const session = await mongoose.startSession();
+  session.startTransaction();
   try {
-    const listing = await cellPhoneAndTabletsModel.findById(req.params.id);
+    const listing = await cellPhoneAndTabletsModel
+      .findById(req.params.id)
+      .session(session);
 
     if (!listing) {
+      await session.abortTransaction();
       return res.status(404).json({
         success: false,
         message: "Listing Not Found",
@@ -488,41 +523,64 @@ export const updateCellPhoneById = async (req, res, next) => {
     }
 
     if (listing.userRef != currentUser) {
+      await session.abortTransaction();
       return res.status(401).json({
         succeess: false,
         message: "Your are not allowed to update another user's listing",
       });
     }
 
-    await cellPhoneAndTabletsModel.findByIdAndUpdate(
-      req.params.id,
-      {
-        $set: {
-          name: req.body.name,
-          description: req.body.description,
-          address: req.body.address,
-          regularPrice: req.body.regularPrice,
-          imageURLs: req.body.imageURLs,
-          brand: req.body.brand,
-          storage: req.body.storage,
-          color: req.body.color,
-          RAM: req.body.RAM,
-          discountPrice: req.body.offer ? req.body.discountPrice : 0,
-          offer: req.body.offer,
-          isApproved: false,
-          isRejected: false,
-        },
-      },
-      {
-        new: true,
-      }
-    );
+    const {
+      name,
+      description,
+      address,
+      regularPrice,
+      discountPrice,
+      brand,
+      storage,
+      color,
+      RAM,
+      offer,
+      imageURLs,
+      deletedOriginals,
+    } = req.body;
 
-    return res.status(201).json({
+    // Update fields
+    listing.set({
+      name,
+      description,
+      address,
+      regularPrice,
+      discountPrice: offer ? discountPrice : 0,
+      brand,
+      storage,
+      color,
+      RAM,
+      offer,
+      imageURLs,
+      isApproved: false,
+      isRejected: false,
+    });
+
+    await listing.save({ session });
+
+    // Schedule deletion of originals via Agenda
+    if (deletedOriginals?.length > 0) {
+      for (const img of deletedOriginals) {
+        await agenda.now("delete cloudinary image", { publicId: img.publicId });
+      }
+    }
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.status(200).json({
       succeess: true,
       message: "Listing Updated",
     });
   } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
     return res.status(404).json({
       success: false,
       message: error.message,
@@ -532,7 +590,6 @@ export const updateCellPhoneById = async (req, res, next) => {
 
 // get Computer By Id for Update(No matter which is rejected or approved))
 export const getComputerById = async (req, res, next) => {
-  console.log("getComputerById");
   if (!req.user) {
     return res.status(401).json({
       success: false,
@@ -564,55 +621,110 @@ export const updateComputerById = async (req, res, next) => {
       message: "User is not authorized",
     });
   }
-  const currentUser = req.user.id;
+
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
-    const listing = await computerModel.findById(req.params.id);
+    const listing = await computerModel
+      .findById(req.params.id)
+      .session(session);
 
     if (!listing) {
+      await session.abortTransaction();
       return res.status(404).json({
         success: false,
         message: "Listing Not Found",
       });
     }
 
-    if (listing.userRef != currentUser) {
+    if (listing.userRef != req.user.id) {
+      await session.abortTransaction();
       return res.status(401).json({
         succeess: false,
         message: "Your are not allowed to update another user's listing",
       });
     }
 
-    await computerModel.findByIdAndUpdate(
-      req.params.id,
-      {
-        $set: {
-          name: req.body.name,
-          description: req.body.description,
-          address: req.body.address,
-          regularPrice: req.body.regularPrice,
-          imageURLs: req.body.imageURLs,
-          brand: req.body.brand,
-          storage: req.body.storage,
-          RAM: req.body.RAM,
-          discountPrice: req.body.offer ? req.body.discountPrice : 0,
-          offer: req.body.offer,
-          isApproved: false,
-          isRejected: false,
-        },
-      },
-      {
-        new: true,
-      }
-    );
+    const {
+      name,
+      description,
+      address,
+      regularPrice,
+      discountPrice,
+      brand,
+      storage,
+      RAM,
+      offer,
+      imageURLs,
+      deletedOriginals,
+    } = req.body;
 
-    return res.status(201).json({
+    // Update fields
+    listing.set({
+      name,
+      description,
+      address,
+      regularPrice,
+      discountPrice: offer ? discountPrice : 0,
+      brand,
+      storage,
+      RAM,
+      offer,
+      imageURLs,
+      isApproved: false,
+      isRejected: false,
+    });
+
+    await listing.save({ session });
+
+    // Schedule deletion of originals via Agenda
+    if (deletedOriginals?.length > 0) {
+      for (const img of deletedOriginals) {
+        await agenda.now("delete cloudinary image", { publicId: img.publicId });
+      }
+    }
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.status(200).json({
       succeess: true,
       message: "Listing Updated",
     });
   } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
     return res.status(404).json({
       success: false,
       message: error.message,
     });
+  }
+};
+
+// get Estate By Id for Update(No matter which is rejected or approved)
+export const getEstateById = async (req, res) => {
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      message: "User is not authorized",
+    });
+  }
+  const id = req.params.id.split(",")[0];
+  try {
+    const product = await listingModel.findOne({
+      _id: id,
+      isDeleted: false,
+    });
+
+    if (!product) {
+      return res
+        .status(404)
+        .json({ succeess: false, message: "Product Not Found" });
+    }
+    return res.status(200).json({ succeess: true, data: product });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({ message: "Server Error" });
   }
 };

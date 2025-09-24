@@ -2,6 +2,8 @@
 import Agenda from "agenda";
 import { sendEmail } from "./emailSender.js";
 import dotenv from "dotenv";
+import cloudinary from "./cloudinaryConfig.js";
+
 dotenv.config();
 
 export const agenda = new Agenda({
@@ -39,6 +41,37 @@ agenda.define("send verification email", async (job) => {
   });
 
   console.log("Verification email sent to:", to);
+});
+
+agenda.define("delete cloudinary image", async (job, done) => {
+  const { publicId } = job.attrs.data;
+
+  if (publicId == null) {
+    console.log("publicId is not provided");
+    return;
+  }
+
+  try {
+    const result = await cloudinary.uploader.destroy(publicId);
+
+    console.log(`Attempted to delete ${publicId}:`, result);
+
+    if (result.result === "ok" || result.result === "not found") {
+      // Successfully deleted
+      console.log(`Image ${publicId} deleted successfully.`);
+      done();
+    } else {
+      // Failed: reschedule the job to try again in 1 minute
+      console.warn(`Failed to delete ${publicId}, retrying in 1 minute.`);
+      await job.schedule("in 1 minute").save();
+      done(new Error("Retry deletion"));
+    }
+  } catch (err) {
+    console.error(`Error deleting ${publicId}:`, err);
+    // Retry in 1 minute
+    await job.schedule("in 1 minute").save();
+    done(err);
+  }
 });
 
 // Export a function to start agenda

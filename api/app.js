@@ -8,6 +8,7 @@ import userRouter from "./Routes/userRoute.js";
 import errorHandler from "./Middleware/errorHandler.js";
 import listingRouter from "./Routes/listingRoute.js";
 import dashboardRoute from "./Routes/Dashboard/DashboardRoute.js";
+import cloudinaryRoute from "./Routes/cloudinaryRoute.js";
 
 dotenv.config();
 
@@ -18,6 +19,7 @@ const corsOptions = {
     "https://smarttrade-afg.netlify.app",
     "http://localhost:3000",
     "https://mahdi-hasanzadeh.github.io",
+    "http://localhost:5173/",
   ],
   credentials: true,
   optionSuccessStatus: 200,
@@ -29,6 +31,7 @@ app.use(cookieParser());
 app.use(express.json());
 
 app.use("/api/user", userRouter);
+app.use("/api/cloudinary", cloudinaryRoute);
 app.use("/api/listing", listingRouter);
 app.use("/api/category", MainCategoryRouter);
 app.use("/api/dashboard", dashboardRoute);

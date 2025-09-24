@@ -11,6 +11,7 @@ import {
   updateCellPhoneById,
   getComputerById,
   updateComputerById,
+  getEstateById,
 } from "../Controllers/listingController.js";
 import { validateToken } from "../Middleware/validateToken.js";
 const Router = express.Router();
@@ -30,5 +31,6 @@ Router.get("/cellPhone/:cellPhoneId", validateToken, getCellPhoneById);
 Router.put("/cellPhone/:id", validateToken, updateCellPhoneById);
 Router.get("/computer/:computerId", validateToken, getComputerById);
 Router.put("/computer/:id", validateToken, updateComputerById);
+Router.get("/estate/:id", validateToken, getEstateById);
 
 export default Router;
