@@ -48,6 +48,7 @@ agenda.define("delete cloudinary image", async (job, done) => {
 
   if (publicId == null) {
     console.log("publicId is not provided");
+    done();
     return;
   }
 

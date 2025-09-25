@@ -6,7 +6,7 @@ import { agenda } from "../Utility/agenda.js";
 import { NotificationModel } from "../Models/Notification/NotificationModel.js";
 
 // create new user
-export const signupUser = asyncHandler(async (req, res, next) => {
+export const signupUser = asyncHandler(async (req, res) => {
   const { username, email, password } = req.body;
   if (!username || !email || !password) {
     res.status(400);
@@ -55,7 +55,7 @@ export const signupUser = asyncHandler(async (req, res, next) => {
 });
 
 // login to an account
-export const signinUser = asyncHandler(async (req, res, next) => {
+export const signinUser = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) {
     res.status(400);
@@ -95,7 +95,7 @@ export const signinUser = asyncHandler(async (req, res, next) => {
 });
 
 // login with google account
-export const google = asyncHandler(async (req, res, next) => {
+export const google = asyncHandler(async (req, res) => {
   // first we check that if the use exist in the database
   // if exist, then we  send and access token with cookie
   // and if the use not exist, first we need to generate
@@ -203,6 +203,12 @@ export const updateUser = async (req, res) => {
     if (mobileNumber !== undefined) updateFields.mobileNumber = mobileNumber;
     if (password) updateFields.password = await bcrypt.hash(password, 10);
 
+    if (avatar.publicId != user.avatar.publicId) {
+      await agenda.now("delete cloudinary image", {
+        publicId: user.avatar.publicId,
+      });
+    }
+
     const updatedUser = await userModel.findByIdAndUpdate(
       req.params.id,
       { $set: updateFields },
@@ -287,7 +293,7 @@ export const updateUserFavorites = async (req, res) => {
 };
 
 // delete user account
-export const deleteUser = asyncHandler(async (req, res, next) => {
+export const deleteUser = asyncHandler(async (req, res) => {
   if (!req.user) {
     res.status(401);
     throw new Error("User is not Authorized");
@@ -308,7 +314,7 @@ export const deleteUser = asyncHandler(async (req, res, next) => {
 });
 
 // get user information
-export const getUserInfo = asyncHandler(async (req, res, next) => {
+export const getUserInfo = asyncHandler(async (req, res) => {
   if (!req.user) {
     res.status(401);
     throw new Error("User is not authorized");
@@ -322,7 +328,7 @@ export const getUserInfo = asyncHandler(async (req, res, next) => {
   res.status(200).json({ username, email, mobileNumber, favorites });
 });
 
-export const verifyEmail = async (req, res, next) => {
+export const verifyEmail = async (req, res) => {
   const { token } = req.query;
 
   if (!token) {
@@ -360,7 +366,7 @@ const generateVerificationToken = (length = 6) => {
   return String(Math.floor(Math.random() * (max - min + 1) + min));
 };
 
-export const sendVerificationCode = async (req, res, next) => {
+export const sendVerificationCode = async (req, res) => {
   try {
     if (!req.user) {
       return res

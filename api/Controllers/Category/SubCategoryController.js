@@ -4,7 +4,7 @@ import {
   isMainCategoryExist,
   isSubCategoryExist,
 } from "../../Utility/functions.js";
-export const createSubCategory = asyncHandler(async (req, res, next) => {
+export const createSubCategory = asyncHandler(async (req, res) => {
   const { mainCategoryName, subCategoryName } = req.body;
   if (!mainCategoryName || !subCategoryName) {
     res.status(400);

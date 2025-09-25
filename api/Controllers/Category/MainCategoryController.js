@@ -2,7 +2,7 @@ import asyncHandler from "express-async-handler";
 import { mainCategoryModel } from "../../Models/Category/MainCategory.js";
 import { isMainCategoryExist } from "../../Utility/functions.js";
 
-export const createMainCategory = asyncHandler(async (req, res, next) => {
+export const createMainCategory = asyncHandler(async (req, res) => {
   const categoryName = req.body.categoryName;
   if (!categoryName) {
     res.status(400);

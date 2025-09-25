@@ -28,7 +28,7 @@ import mongoose from "mongoose";
 import { agenda } from "../Utility/agenda.js";
 
 // create a new listing
-export const createListing = async (req, res, next) => {
+export const createListing = async (req, res) => {
   try {
     // check the user is authenticated or not
     if (!req.user) {
@@ -140,7 +140,7 @@ export const createListing = async (req, res, next) => {
 };
 
 // Return all listings of a specific user
-export const getListings = async (req, res, next) => {
+export const getListings = async (req, res) => {
   if (!req.user) {
     return res.status(401).json({
       success: false,
@@ -172,7 +172,7 @@ export const getListings = async (req, res, next) => {
 };
 
 // return a single product by id
-export const getListingById = async (req, res, next) => {
+export const getListingById = async (req, res) => {
   if (!req.user) {
     return res.status(401).json({
       success: false,
@@ -237,7 +237,7 @@ export const getListingById = async (req, res, next) => {
 };
 
 // delete a single product by id
-export const deleteListingById = async (req, res, next) => {
+export const deleteListingById = async (req, res) => {
   if (!req.user) {
     return res.status(401).json({
       success: false,
@@ -329,7 +329,7 @@ export const deleteListingById = async (req, res, next) => {
 };
 
 // return products based on query
-export const getListingsWithQuery = async (req, res, next) => {
+export const getListingsWithQuery = async (req, res) => {
   // * 1: get the category from the query
   const category = req.query.category;
   switch (category) {
@@ -360,7 +360,7 @@ export const getListingsWithQuery = async (req, res, next) => {
 };
 
 //update listings by id(Estate)
-export const updateListingById = async (req, res, next) => {
+export const updateListingById = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
@@ -442,7 +442,7 @@ export const updateListingById = async (req, res, next) => {
 
 //return a list of products based on several ids
 // *(return all products that is in favorites list of a user)
-export const getListingsById = async (req, res, next) => {
+export const getListingsById = async (req, res) => {
   try {
     // Validate query param
     if (!req.query.ListingsId) {
@@ -474,7 +474,7 @@ export const getListingsById = async (req, res, next) => {
 };
 
 // get CellPhone By Id for Update(No matter which is rejected or approved)
-export const getCellPhoneById = async (req, res, next) => {
+export const getCellPhoneById = async (req, res) => {
   if (!req.user) {
     return res.status(401).json({
       success: false,
@@ -499,7 +499,7 @@ export const getCellPhoneById = async (req, res, next) => {
   }
 };
 
-export const updateCellPhoneById = async (req, res, next) => {
+export const updateCellPhoneById = async (req, res) => {
   if (!req.user) {
     return res.status(401).json({
       success: false,
@@ -589,7 +589,7 @@ export const updateCellPhoneById = async (req, res, next) => {
 };
 
 // get Computer By Id for Update(No matter which is rejected or approved))
-export const getComputerById = async (req, res, next) => {
+export const getComputerById = async (req, res) => {
   if (!req.user) {
     return res.status(401).json({
       success: false,
@@ -614,7 +614,7 @@ export const getComputerById = async (req, res, next) => {
   }
 };
 
-export const updateComputerById = async (req, res, next) => {
+export const updateComputerById = async (req, res) => {
   if (!req.user) {
     return res.status(401).json({
       success: false,

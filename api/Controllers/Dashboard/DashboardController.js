@@ -427,7 +427,7 @@ export const getRejectedListings = async (req, res) => {
 };
 
 // Get a single listing to be checked by admin for approval
-export const getListingByIdForApproval = async (req, res, next) => {
+export const getListingByIdForApproval = async (req, res) => {
   try {
     if (!req.user) {
       return res.status(401).json({ success: false, message: "Unauthorized" });
