@@ -9,6 +9,7 @@ import {
   getListingByIdForApproval,
   getListingsStats,
   getPendingListings,
+  getProductById,
   getRejectedListings,
   rejectListing,
 } from "../../Controllers/Dashboard/DashboardController.js";
@@ -17,6 +18,7 @@ const Router = express.Router();
 //Route: api/dashboard/
 //public route
 Router.get("/", validateToken, authorizeAdmin, getDashboardInfo);
+Router.get("/product/:id", validateToken, authorizeAdmin, getProductById);
 Router.get("/listings/stats", validateToken, authorizeAdmin, getListingsStats);
 Router.get(
   "/listings/pending",

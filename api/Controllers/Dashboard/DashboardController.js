@@ -11,6 +11,7 @@ import {
   estate,
 } from "../../Utility/constants.js";
 import { onlineUsers } from "../../server.js";
+import { userModel } from "../../Models/User/userModel.js";
 
 // ---- Helper: last 6 months ----
 function getLast6Months() {
@@ -265,12 +266,22 @@ export const getListingsStats = async (req, res) => {
     });
     const totalPending = pendingListings + pendingCell + pendingComputers;
 
+    const totalOfUsers = await userModel.countDocuments({
+      role: "User",
+    });
+
+    const totalOfAdmins = await userModel.countDocuments({
+      role: "Admin",
+    });
+
     return res.status(200).json({
       success: true,
       data: {
         approved: totalApproved,
         rejected: totalRejected,
         pending: totalPending,
+        totalOfUsers,
+        totalOfAdmins,
       },
     });
   } catch (error) {
@@ -687,6 +698,59 @@ export const rejectListing = async (req, res) => {
     await session.abortTransaction();
     session.endSession();
     console.error(error);
+    return res.status(500).json({
+      success: false,
+      message: "Server Error",
+    });
+  }
+};
+
+export const getProductById = async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    if (req.user.role !== "Admin") {
+      return res
+        .status(403)
+        .json({ success: false, message: "Restricted Access" });
+    }
+
+    const productId = req.params.id;
+
+    const listings = [];
+
+    const estate = await listingModel.findById(productId);
+
+    if (estate != null) {
+      listings.push(estate);
+    }
+
+    const cellPhone = await cellPhoneAndTabletsModel.findById(productId);
+
+    if (cellPhone != null) {
+      listings.push(cellPhone);
+    }
+
+    const computer = await computerModel.findById(productId);
+
+    if (computer != null) {
+      listings.push(computer);
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: listings,
+    });
+  } catch (error) {
+    // If it's an invalid ObjectId (CastError)
+    if (error.name === "CastError" && error.kind === "ObjectId") {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid product ID format.",
+      });
+    }
     return res.status(500).json({
       success: false,
       message: "Server Error",
