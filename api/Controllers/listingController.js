@@ -244,7 +244,6 @@ export const deleteListingById = async (req, res) => {
       message: "User is not authorized",
     });
   }
-
   const { mainCategoryName, subCategoryName, reason } = req.body;
 
   try {

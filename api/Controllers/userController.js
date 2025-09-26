@@ -324,8 +324,26 @@ export const getUserInfo = asyncHandler(async (req, res) => {
     res.status(404);
     throw new Error("User is not found");
   }
-  const { username, email, mobileNumber, favorites } = user;
-  res.status(200).json({ username, email, mobileNumber, favorites });
+  const {
+    username,
+    email,
+    mobileNumber,
+    favorites,
+    isBanned,
+    banReason,
+    bannedAt,
+    emailVerified,
+  } = user;
+  res.status(200).json({
+    username,
+    email,
+    mobileNumber,
+    favorites,
+    isBanned,
+    banReason,
+    bannedAt,
+    emailVerified,
+  });
 });
 
 export const verifyEmail = async (req, res) => {
@@ -386,6 +404,7 @@ export const sendVerificationCode = async (req, res) => {
         .status(200)
         .json({ message: "Your account is already verified" });
     }
+    console.log(user.emailVerificationTokenExpires);
 
     // Token not expired yet
     if (

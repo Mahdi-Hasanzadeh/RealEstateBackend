@@ -603,12 +603,6 @@ export const rejectListing = async (req, res) => {
       return res.status(401).json({ success: false, message: "Unauthorized" });
     }
 
-    if (req.user.role !== "Admin") {
-      return res
-        .status(403)
-        .json({ success: false, message: "Restricted Access" });
-    }
-
     const { id, mainCategory, subCategory } = req.query;
     const { reason } = req.body;
 
@@ -711,12 +705,6 @@ export const getProductById = async (req, res) => {
       return res.status(401).json({ success: false, message: "Unauthorized" });
     }
 
-    if (req.user.role !== "Admin") {
-      return res
-        .status(403)
-        .json({ success: false, message: "Restricted Access" });
-    }
-
     const productId = req.params.id;
 
     const listings = [];
@@ -755,5 +743,125 @@ export const getProductById = async (req, res) => {
       success: false,
       message: "Server Error",
     });
+  }
+};
+
+export const getUserById = async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    const userId = req.params.id;
+
+    const user = await userModel
+      .findById(userId)
+      .select(
+        "-avatar -password -favorites -emailVerificationToken -emailVerificationTokenExpires"
+      );
+
+    return res.status(200).json({
+      success: true,
+      data: user,
+    });
+  } catch (error) {
+    // If it's an invalid ObjectId (CastError)
+    if (error.name === "CastError" && error.kind === "ObjectId") {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid product ID format.",
+      });
+    }
+    return res.status(500).json({
+      success: false,
+      message: "Server Error",
+    });
+  }
+};
+
+export const banUserById = async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    const userId = req.params.id;
+
+    const { reason } = req.body;
+
+    const user = await userModel.findById(userId);
+
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found." });
+    }
+
+    // Ban the user
+    user.isBanned = true;
+    user.banReason = reason;
+    user.bannedAt = new Date();
+
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      data: user,
+    });
+  } catch (error) {
+    // If it's an invalid ObjectId (CastError)
+    if (error.name === "CastError" && error.kind === "ObjectId") {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid product ID format.",
+      });
+    }
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const activateUserById = async (req, res) => {
+  try {
+    const userId = req.params.id;
+
+    const user = await userModel
+      .findById(userId)
+      .select("username email role isBanned banReason bannedAt");
+
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found." });
+    }
+
+    if (!user.isBanned) {
+      return res
+        .status(400)
+        .json({ success: false, message: "User is already active." });
+    }
+
+    // Activate user
+    user.isBanned = false;
+    user.banReason = "";
+    user.bannedAt = null;
+
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: "User has been activated successfully.",
+      data: user,
+    });
+  } catch (error) {
+    // Handle invalid ObjectId or other errors
+    if (error.name === "CastError" && error.kind === "ObjectId") {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid user ID format." });
+    }
+    res.status(500).json({ success: false, message: error.message });
   }
 };

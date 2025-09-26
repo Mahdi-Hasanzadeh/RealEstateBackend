@@ -40,6 +40,18 @@ const userSchema = mongoose.Schema(
     },
     emailVerificationToken: String,
     emailVerificationTokenExpires: Date,
+    // ✅ Ban fields
+    isBanned: {
+      type: Boolean,
+      default: false,
+    },
+    banReason: {
+      type: String,
+      default: "",
+    },
+    bannedAt: {
+      type: Date,
+    },
   },
   {
     timestamps: true,
